@@ -12,6 +12,7 @@ import { ProductsModule } from './products/products.module';
 // import { CommentsModule } from './comments/comments.module';
 // import { PostLikesModule } from './post-likes/post-likes.module';
 import { CategoriesModule } from './categories/categories.module';
+import { RootController } from './root.controller';
 
 @Module({
   imports: [
@@ -20,9 +21,9 @@ import { CategoriesModule } from './categories/categories.module';
     AuthModule,
     ProductsModule,
     CategoriesModule,
-    // , PostsModule, CommentsModule, PostLikesModule
+    // PostsModule, CommentsModule, PostLikesModule
   ],
-  controllers: [AppController],
+  controllers: [AppController, RootController],
   providers: [AppService, PrismaService],
 })
 export class AppModule {}

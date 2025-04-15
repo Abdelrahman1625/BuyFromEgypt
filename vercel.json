@@ -2,17 +2,27 @@
   "version": 2,
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "framework": "node",
   "builds": [
     {
-      "src": "dist/main.js",
-      "use": "@vercel/node"
+      "src": "src/main.ts",
+      "use": "@vercel/node",
+      "config": {
+        "maxLambdaSize": "15mb"
+      }
     }
   ],
   "routes": [
     {
+      "src": "/api/v1/(.*)",
+      "dest": "/src/main.ts"
+    },
+    {
+      "src": "/api-docs/(.*)",
+      "dest": "/src/main.ts"
+    },
+    {
       "src": "/(.*)",
-      "dest": "dist/main.js"
+      "dest": "/src/main.ts"
     }
   ]
 }
