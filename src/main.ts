@@ -4,32 +4,44 @@ import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/all-exceptions.filter';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 
+let app;
+
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('api/v1');
+  if (!app) {
+    app = await NestFactory.create(AppModule, { cors: true });
+    app.setGlobalPrefix('api/v1');
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      exceptionFactory: (errors) => {
-        // const errorMessage = errors[0]?.constraints ? Object.values(errors[0].constraints)[0] : 'Validation failed';
-        const errorMessage = errors.map((err) => Object.values(err.constraints || {}).join(', ')).join(', ') || 'Validation failed';
-        return new BadRequestException(`${errorMessage}`);
-      },
-    })
-  );
-  const httpAdapter = app.get(HttpAdapterHost);
-  app.useGlobalFilters(new PrismaExceptionFilter(httpAdapter));
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+        exceptionFactory: (errors) => {
+          const errorMessage = errors.map((err) => Object.values(err.constraints || {}).join(', ')).join(', ') || 'Validation failed';
+          return new BadRequestException(`${errorMessage}`);
+        },
+      })
+    );
+    const httpAdapter = app.get(HttpAdapterHost);
+    app.useGlobalFilters(new PrismaExceptionFilter(httpAdapter));
 
-  const config = new DocumentBuilder().setTitle('Buy From Egypt API').setDescription('API Documentation for Buy From Egypt').setVersion('1.0').build();
+    const config = new DocumentBuilder().setTitle('Buy From Egypt API').setDescription('API Documentation for Buy From Egypt').setVersion('1.0').addServer('/api/v1').build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api-docs', app, document);
 
-  await app.listen(process.env.PORT ?? 3000);
-  console.log('📄 Swagger Docs available at: http://localhost:3000/api-docs');
+    await app.init();
+  }
+  return app.getHttpServer();
 }
 
-bootstrap();
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  bootstrap().then((server) => {
+    const port = process.env.PORT ?? 3000;
+    server.listen(port);
+    console.log(`📄 Swagger Docs available at: http://localhost:${port}/api-docs`);
+  });
+}
+
+export default bootstrap;
