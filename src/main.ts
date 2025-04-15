@@ -3,12 +3,19 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/all-exceptions.filter';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import * as express from 'express';
 
+const server = express();
 let app;
 
 async function bootstrap() {
   if (!app) {
-    app = await NestFactory.create(AppModule, { cors: true });
+    app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
+      cors: true,
+      logger: ['error', 'warn', 'debug', 'log'],
+    });
+
     app.setGlobalPrefix('api/v1');
 
     app.useGlobalPipes(
@@ -22,6 +29,7 @@ async function bootstrap() {
         },
       })
     );
+
     const httpAdapter = app.get(HttpAdapterHost);
     app.useGlobalFilters(new PrismaExceptionFilter(httpAdapter));
 
@@ -32,7 +40,8 @@ async function bootstrap() {
 
     await app.init();
   }
-  return app.getHttpServer();
+
+  return app.getHttpAdapter().getInstance();
 }
 
 // For local development
