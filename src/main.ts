@@ -37,7 +37,7 @@ async function bootstrap() {
     const httpAdapter = app.get(HttpAdapterHost);
     app.useGlobalFilters(new PrismaExceptionFilter(httpAdapter));
 
-    const config = new DocumentBuilder().setTitle('Buy From Egypt API').setDescription('API Documentation for Buy From Egypt').setVersion('1.0').addServer('/api/v1').build();
+    const config = new DocumentBuilder().setTitle('Buy From Egypt API').setDescription('API Documentation for Buy From Egypt').setVersion('1.0').build();
 
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api-docs', app, document);
