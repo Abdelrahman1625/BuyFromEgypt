@@ -11,7 +11,7 @@
       }
     },
     {
-      "src": "public/**",
+      "src": "node_modules/swagger-ui-dist/**",
       "use": "@vercel/static"
     }
   ],
@@ -22,7 +22,7 @@
     },
     {
       "src": "/swagger-ui/(.*)",
-      "dest": "/public/swagger-ui/$1"
+      "dest": "/node_modules/swagger-ui-dist/$1"
     },
     {
       "src": "/swagger.json",

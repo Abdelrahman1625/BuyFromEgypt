@@ -19,8 +19,8 @@ async function bootstrap() {
 
     app.setGlobalPrefix('api/v1');
 
-    // Serve static files from the public directory
-    app.use('/swagger-ui', express.static(join(__dirname, '..', 'public', 'swagger-ui')));
+    // Serve Swagger UI files directly from node_modules
+    app.use('/swagger-ui', express.static(join(__dirname, '..', 'node_modules', 'swagger-ui-dist')));
 
     app.getHttpAdapter().get('/', (req, res) => {
       res.json({ message: 'API is running. Visit /api-docs for documentation.' });
@@ -45,16 +45,11 @@ async function bootstrap() {
 
     const document = SwaggerModule.createDocument(app, config);
 
-    // Save the Swagger JSON file
-    const fs = require('fs');
-    fs.writeFileSync(join(__dirname, '..', 'public', 'swagger.json'), JSON.stringify(document, null, 2));
-
     SwaggerModule.setup('api-docs', app, document, {
       customCss: '.swagger-ui .topbar { display: none }',
       customSiteTitle: 'Buy From Egypt API Documentation',
       swaggerOptions: {
         persistAuthorization: true,
-        url: '/swagger.json',
       },
     });
 
