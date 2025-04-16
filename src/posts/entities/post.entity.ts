@@ -1,12 +1,13 @@
-export class PostEntity {
-  id: string;
+import { User } from '../../users/entities/user.entity';
+import { Product } from '../../products/entities/product.entity';
+
+export interface PostTs {
+  postId: string;
   title: string;
   content: string;
-  status: string;
-  createdAt: Date;
-  userId: string;
-  images?: string[];
-  products?: string[];
-  comments?: any[];
-  likes?: any[];
+  user: User;
+  products: Product[];
+  // comments: Comment[];
+  // likes: PostLike[];
+  // images: PostImage[];
 }

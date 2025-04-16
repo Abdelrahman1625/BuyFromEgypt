@@ -12,16 +12,6 @@ export class CreatePostDto {
   @IsString()
   content: string;
 
-  @ApiProperty({ example: 'published', description: 'Status of the post' })
-  @IsNotEmpty({ message: 'Post status is required' })
-  @IsString()
-  status: string;
-
-  @ApiProperty({ example: 'User ID', description: 'ID of the user creating the post' })
-  @IsNotEmpty({ message: 'User ID is required' })
-  @IsString()
-  userId: string;
-
   @ApiProperty({ type: [String], example: ['image1.png', 'image2.png'], description: 'List of image URLs' })
   @IsOptional()
   @IsArray()
@@ -30,7 +20,7 @@ export class CreatePostDto {
 
   @ApiProperty({ type: [String], example: ['product-id-1', 'product-id-2'], description: 'List of product IDs' })
   @IsOptional()
-  @IsArray()
+  // @IsArray()
   @IsString({ each: true })
-  productIds?: string[];
+  products?: string[];
 }

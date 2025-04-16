@@ -17,7 +17,7 @@ export class ProductsService {
   ) {}
 
   async findAll(): Promise<Product[]> {
-    const products = await this.prisma.product.findMany({
+    const products = this.prisma.product.findMany({
       include: {
         owner: true,
         category: {
@@ -26,15 +26,10 @@ export class ProductsService {
         images: true,
       },
     });
-    if (!products) throw new NotFoundException(`No products found.`);
-    return products.map((product) => ({
-      ...product,
-      category: product.category || undefined,
-    }));
+    return products;
   }
 
   async createProduct(userId: string, createProductDto: CreateProductDto, files: Express.Multer.File[]): Promise<Product> {
-    //do check category
     const user = await this.prisma.user.findFirst({ where: { userId } });
     if (!user) throw new NotFoundException(`User with this ID not found.`);
 
@@ -51,7 +46,6 @@ export class ProductsService {
     if (files && files.length > 0) {
       uploadedImages = await this.cloudinaryService.uploadImages(files, cloudFolder);
     }
-    console.log(uploadedImages);
     const newProduct = await this.prisma.product
       .create({
         data: {
@@ -79,15 +73,12 @@ export class ProductsService {
         if (cloudFolder) await this.cloudinaryService.deleteFolder(cloudFolder);
         throw err;
       });
-
-    return {
-      ...newProduct,
-      category: newProduct.category || undefined,
-    };
+    return newProduct;
   }
 
-  async findProductById(productId: string): Promise<Product> {
-    const product = await this.prisma.product.findUnique({
+  async findProductById(productId: string) {
+    const product = this.prisma.product.findUnique({
+
       where: { productId },
       include: {
         owner: true,
@@ -97,21 +88,16 @@ export class ProductsService {
         },
       },
     });
-
     if (!product) {
       throw new NotFoundException(`Product with ID ${productId} not found.`);
     }
-
-    return {
-      ...product,
-      category: product.category || undefined,
-    };
+    return product;
   }
 
   async updateProduct(productId: string, userId: string, updateProductDto: UpdateProductDto, files?: Express.Multer.File[]): Promise<Product> {
     const product = await this.prisma.product.findUnique({
       where: { productId },
-      include: { images: true, owner: true, category: true },
+      include: { images: true, owner: true },
     });
 
     if (!product) throw new NotFoundException(`Product with ID ${productId} not found!`);
@@ -155,7 +141,6 @@ export class ProductsService {
       data: {
         ...updateData,
         slug,
-        categoryId: undefined,
         images: {
           create: uploadedImages?.map((img, index) => ({
             url: img.url,
@@ -172,12 +157,7 @@ export class ProductsService {
         },
       },
     });
-
-    // Ensure the category is undefined instead of null for compatibility with the Product type
-    return {
-      ...updatedProduct,
-      category: updatedProduct.category || undefined,
-    };
+    return updatedProduct;
   }
 
   async toggleProductState(
@@ -219,7 +199,7 @@ export class ProductsService {
 
     await this.prisma.product.delete({ where: { productId } });
     return {
-      message: `User with ID ${productId} has been deleted successfully.`,
+      message: `Product with ID ${productId} has been deleted successfully.`,
     };
   }
 }

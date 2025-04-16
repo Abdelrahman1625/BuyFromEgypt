@@ -1,84 +1,129 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { Prisma } from '@prisma/client';
+import { CloudinaryService } from '../common/modules/cloudinary/cloudinary.service';
+import { v4 as uuid } from 'uuid';
+import { PostTs } from './entities/post.entity';
+import { RoleEnum } from '../common/enums/role.enum';
 
 @Injectable()
 export class PostsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cloudinaryService: CloudinaryService
+  ) {}
 
-  async create(createPostDto: CreatePostDto) {
-    const { images, productIds, ...postData } = createPostDto;
-    return this.prisma.post.create({
+  async create(userId: string, createPostDto: CreatePostDto, files: Express.Multer.File[]): Promise<PostTs> {
+    const cloudFolder = `${process.env.SITE_NAME}/posts/${uuid()}`;
+    let uploadedImages;
+
+    if (files && files.length > 0) {
+      uploadedImages = await this.cloudinaryService.uploadImages(files, cloudFolder);
+    }
+
+    if (createPostDto.products) {
+      for (const productId of createPostDto.products) {
+        const product = await this.prisma.product.findUnique({
+          where: { productId },
+        });
+
+        if (!product) {
+          throw new NotFoundException(`Product with ID ${productId} not found`);
+        }
+      }
+    }
+
+    const newPost = await this.prisma.post.create({
       data: {
-        ...postData,
-        images: { create: (images ?? []).map((url) => ({ url })) },
+        ...createPostDto,
+        userId,
+        cloudFolder,
+        images: {
+          create: uploadedImages?.map((img: any, index: number) => ({
+            url: img.url,
+            id: img.id,
+          })),
+        },
         products: {
-          connect: productIds?.map((id) => ({ productId: id })),
+          connect: createPostDto.products?.map((productId) => ({ productId })),
         },
       },
+      include: {
+        user: true,
+        images: true,
+        products: true,
+      },
     });
+
+    return newPost;
   }
 
   async findAll() {
     const posts = await this.prisma.post.findMany({
-      include: { comments: true, likes: true },
+      include: { comments: true, likes: true, user: true, images: true, products: true },
     });
     return posts;
   }
 
-  async findOne(id: string) {
+  async findOne(postId: string) {
     const post = await this.prisma.post.findUnique({
-      where: { id: id.toString() },
+      where: { postId },
       include: { comments: true, likes: true },
     });
+
     if (!post) {
-      throw new NotFoundException(`Post with ID ${id} not found`);
+      throw new NotFoundException(`Post with ID ${postId} not found`);
     }
+
     return post;
   }
 
-  async update(id: string, updatePostDto: UpdatePostDto) {
+  async update(postId: string, userId: string, updatePostDto: UpdatePostDto) {
     const post = await this.prisma.post.findUnique({
-      where: { id: id.toString() },
+      where: { postId },
+      include: { user: true, products: true },
     });
+
     if (!post) {
-      throw new NotFoundException(`Post with ID ${id} not found`);
+      throw new NotFoundException(`Post with ID ${postId} not found`);
     }
-    const { images, productIds, ...postData } = updatePostDto;
-    return this.prisma.post.update({
-      where: { id: id.toString() },
-      data: {
-        ...postData,
-        images: images ? { deleteMany: {}, create: images.map((url) => ({ url })) } : undefined,
-        products: productIds ? { set: productIds.map((id) => ({ productId: id })) } : undefined,
-      },
+
+    if (post.userId !== userId) {
+      throw new ForbiddenException("You don't have permission to update this post");
+    }
+
+    console.log(updatePostDto);
+
+    const updatedPost = this.prisma.post.update({
+      where: { postId },
+      data: { title: updatePostDto.title, content: updatePostDto.content },
     });
+    return updatedPost;
   }
 
-  async remove(id: string) {
+  async remove(postId: string, userId: string, role: string): Promise<{ message: string }> {
     const post = await this.prisma.post.findUnique({
-      where: { id: id.toString() },
+      where: { postId },
     });
+
     if (!post) {
-      throw new NotFoundException(`Post with ID ${id} not found`);
+      throw new NotFoundException(`Post with ID ${postId} not found`);
     }
 
-    await this.prisma.comment.deleteMany({
-      where: { postId: id.toString() },
-    });
-    await this.prisma.postLike.deleteMany({
-      where: { postId: id.toString() },
-    });
-    await this.prisma.postImage.deleteMany({
-      where: { postId: id.toString() },
-    });
-    await this.prisma.product.deleteMany({
-      where: { posts: { some: { id: id.toString() } } },
-    });
-    return this.prisma.post.delete({
-      where: { id: id.toString() },
-    });
+    if (post.userId !== userId && role !== RoleEnum.ADMIN) {
+      throw new ForbiddenException("You don't have permission to delete this post");
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.comment.deleteMany({ where: { postId } }),
+      this.prisma.postImage.deleteMany({ where: { postId } }),
+      this.prisma.postLike.deleteMany({ where: { postId } }),
+      this.prisma.post.delete({ where: { postId } }),
+    ]);
+
+    return {
+      message: `Post with ID ${postId} has been deleted successfully.`,
+    };
   }
 }

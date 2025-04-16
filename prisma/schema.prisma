@@ -58,17 +58,18 @@ model Follower {
 }
 
 model Post {
-  id        String      @id @default(uuid())
-  title     String
-  content   String
-  status    String
-  createdAt DateTime    @default(now())
-  userId    String
-  user      User        @relation("UserPosts", fields: [userId], references: [userId])
-  comments  Comment[]
-  likes     PostLike[]
-  products  Product[]   @relation("PostProducts")
-  images    PostImage[] @relation("PostImages")
+  postId      String      @id @default(uuid())
+  title       String
+  content     String
+  cloudFolder String
+  userId      String
+  user        User        @relation("UserPosts", fields: [userId], references: [userId])
+  comments    Comment[]
+  likes       PostLike[]
+  products    Product[]   @relation("PostProducts")
+  images      PostImage[] @relation("PostImages")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@index([userId])
 }
@@ -80,7 +81,7 @@ model PostLike {
   createdAt    DateTime     @default(now())
   reactionType ReactionType @default(LIKE)
 
-  post Post @relation(fields: [postId], references: [id])
+  post Post @relation(fields: [postId], references: [postId])
   user User @relation("UserLikes", fields: [userId], references: [userId])
 
   @@unique([postId, userId])
@@ -95,11 +96,11 @@ model Comment {
   content   String
   createdAt DateTime @default(now())
 
-  post Post @relation(fields: [postId], references: [id])
-  user User @relation("UserComments", fields: [userId], references: [userId]) // Define the relationship with User
+  post Post @relation(fields: [postId], references: [postId])
+  user User @relation("UserComments", fields: [userId], references: [userId])
 
-  @@index([postId]) // Index for postId
-  @@index([userId]) // Index for userId
+  @@index([postId])
+  @@index([userId])
 }
 
 model Certification {
@@ -151,11 +152,11 @@ model Product {
   available      Boolean         @default(true)
   rating         Float?          @default(0.0)
   reviewCount    Int             @default(0)
-  cloudFolder    String?
+  cloudFolder    String
   ownerId        String
   owner          User            @relation("UserProducts", fields: [ownerId], references: [userId])
   categoryId     String
-  category       Category       @relation("CategoryProducts", fields: [categoryId], references: [categoryId])
+  category       Category        @relation("CategoryProducts", fields: [categoryId], references: [categoryId])
   approvedById   String?
   approvedBy     User?           @relation("ApprovedProducts", fields: [approvedById], references: [userId])
   approvedAt     DateTime?
@@ -189,7 +190,7 @@ model PostImage {
   id     String @id @default(uuid())
   url    String
   postId String
-  post   Post   @relation("PostImages", fields: [postId], references: [id])
+  post   Post   @relation("PostImages", fields: [postId], references: [postId])
 
   @@index([postId])
 }
