@@ -6,9 +6,9 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "npm run copy-swagger-ui && nest build",
     "vercel-build": "npm run prisma:generate && npm run build",
-    "postinstall": "mkdir -p public/swagger-ui && cp -r node_modules/swagger-ui-dist/* public/swagger-ui/",
+    "copy-swagger-ui": "mkdir -p public/swagger-ui && cp -r node_modules/swagger-ui-dist/* public/swagger-ui/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",

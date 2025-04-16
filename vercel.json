@@ -9,6 +9,10 @@
       "config": {
         "maxLambdaSize": "15mb"
       }
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -17,8 +21,12 @@
       "dest": "/src/main.ts"
     },
     {
-      "src": "/api-docs/swagger-ui/(.*)",
-      "dest": "/node_modules/swagger-ui-dist/$1"
+      "src": "/swagger-ui/(.*)",
+      "dest": "/public/swagger-ui/$1"
+    },
+    {
+      "src": "/swagger.json",
+      "dest": "/public/swagger.json"
     },
     {
       "src": "/api-docs/(.*)",

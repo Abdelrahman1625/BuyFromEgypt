@@ -5,6 +5,7 @@ import { PrismaExceptionFilter } from './common/filters/all-exceptions.filter';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
+import { join } from 'path';
 
 const server = express();
 let cachedApp: any;
@@ -17,6 +18,9 @@ async function bootstrap() {
     });
 
     app.setGlobalPrefix('api/v1');
+
+    // Serve static files from the public directory
+    app.use('/swagger-ui', express.static(join(__dirname, '..', 'public', 'swagger-ui')));
 
     app.getHttpAdapter().get('/', (req, res) => {
       res.json({ message: 'API is running. Visit /api-docs for documentation.' });
@@ -37,14 +41,20 @@ async function bootstrap() {
     const httpAdapter = app.get(HttpAdapterHost);
     app.useGlobalFilters(new PrismaExceptionFilter(httpAdapter));
 
-    const config = new DocumentBuilder().setTitle('Buy From Egypt API').setDescription('API Documentation for Buy From Egypt').setVersion('1.0').build();
+    const config = new DocumentBuilder().setTitle('Buy From Egypt API').setDescription('API Documentation for Buy From Egypt').setVersion('1.0').addBearerAuth().build();
 
     const document = SwaggerModule.createDocument(app, config);
+
+    // Save the Swagger JSON file
+    const fs = require('fs');
+    fs.writeFileSync(join(__dirname, '..', 'public', 'swagger.json'), JSON.stringify(document, null, 2));
+
     SwaggerModule.setup('api-docs', app, document, {
       customCss: '.swagger-ui .topbar { display: none }',
       customSiteTitle: 'Buy From Egypt API Documentation',
       swaggerOptions: {
         persistAuthorization: true,
+        url: '/swagger.json',
       },
     });
 
