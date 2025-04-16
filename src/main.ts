@@ -6,6 +6,7 @@ import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
 import { join } from 'path';
+import * as fs from 'fs';
 
 const server = express();
 let cachedApp: any;
@@ -19,8 +20,8 @@ async function bootstrap() {
 
     app.setGlobalPrefix('api/v1');
 
-    // Serve Swagger UI files directly from node_modules
-    app.use('/swagger-ui', express.static(join(__dirname, '..', 'node_modules', 'swagger-ui-dist')));
+    // Serve static files from the public directory
+    app.use(express.static(join(__dirname, '..', 'public')));
 
     app.getHttpAdapter().get('/', (req, res) => {
       res.json({ message: 'API is running. Visit /api-docs for documentation.' });
@@ -45,12 +46,14 @@ async function bootstrap() {
 
     const document = SwaggerModule.createDocument(app, config);
 
-    SwaggerModule.setup('api-docs', app, document, {
-      customCss: '.swagger-ui .topbar { display: none }',
-      customSiteTitle: 'Buy From Egypt API Documentation',
-      swaggerOptions: {
-        persistAuthorization: true,
-      },
+    // Serve Swagger JSON directly through an endpoint
+    app.getHttpAdapter().get('/swagger.json', (req, res) => {
+      res.json(document);
+    });
+
+    // Serve the Swagger HTML file
+    app.getHttpAdapter().get('/api-docs', (req, res) => {
+      res.sendFile(join(__dirname, '..', 'public', 'swagger.html'));
     });
 
     await app.init();
