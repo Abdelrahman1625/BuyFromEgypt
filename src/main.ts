@@ -40,7 +40,13 @@ async function bootstrap() {
     const config = new DocumentBuilder().setTitle('Buy From Egypt API').setDescription('API Documentation for Buy From Egypt').setVersion('1.0').build();
 
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api-docs', app, document);
+    SwaggerModule.setup('api-docs', app, document, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'Buy From Egypt API Documentation',
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+    });
 
     await app.init();
     cachedApp = app;
