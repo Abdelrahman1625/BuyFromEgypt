@@ -9,7 +9,7 @@ import { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UpdateUserForAdminDto } from './dto/update-user.dto';
-import { PostLikesService } from 'src/post-likes/post-likes.service';
+import { PostLikesService } from '../post-likes/post-likes.service';
 
 @Controller('users')
 export class UsersController {

@@ -9,8 +9,8 @@ import { JwtService } from '@nestjs/jwt';
 import { RequestResetDto } from './dtos/RequestReset.dto';
 import { VerifyOtpDto } from './dtos/VerifyOTP.dto';
 import { ResetPasswordDto } from './dtos/ResetPassword.dto';
-import { MailService } from 'src/MailService/mail.service';
-import { MobileService } from 'src/MobileService/mobile.service';
+import { MailService } from '../MailService/mail.service';
+import { MobileService } from '../MobileService/mobile.service';
 import * as crypto from 'crypto';
 
 @Injectable()

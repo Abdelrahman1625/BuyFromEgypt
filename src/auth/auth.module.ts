@@ -5,7 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from '../common/constants';
 import { MailModule } from '../MailService/mail.module';
-import { MobileModule } from 'src/MobileService/mobile.module';
+import { MobileModule } from '../MobileService/mobile.module';
 
 @Module({
   imports: [
