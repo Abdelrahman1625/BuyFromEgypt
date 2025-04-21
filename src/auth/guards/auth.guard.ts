@@ -15,14 +15,8 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
     if (!token) throw new UnauthorizedException('Token not found. Please log in.');
-    let payload;
-    try {
-      payload = await this.jwtService.verifyAsync(token, { secret: jwtConstants.secret });
-    } catch (error) {
-      if (error.name === 'TokenExpiredError') throw new UnauthorizedException('Token expired. Please log in again.');
-      else throw new UnauthorizedException('Authentication failed.');
-    }
-    const user = await this.prisma.user.findFirst({ where: { userId: payload.userId } });
+    const payload = await this.jwtService.verifyAsync(token, { secret: jwtConstants.secret });
+    const user = await this.prisma.user.findFirst({ where: { userId: payload.sub } });
     if (!user) throw new UnauthorizedException('User not found');
     request['user'] = payload;
     return true;

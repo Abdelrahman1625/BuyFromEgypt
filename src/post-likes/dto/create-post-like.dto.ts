@@ -1,6 +1,5 @@
 import { IsNotEmpty, IsString, IsIn, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { ReactionType } from '@prisma/client';
 
 
 export class CreatePostLikeDto {
@@ -20,11 +19,5 @@ export class CreatePostLikeDto {
   @IsString({ message: 'Action must be a string' })
   action: 'add' | 'remove' | 'update';
 
-  @ApiProperty({
-    example: 'LIKE',
-    description: 'Type of the reaction (LIKE, LOVE, HAHA, WOW, SAD, ANGRY)'
-  })
-  @IsOptional()
-  @IsIn(Object.values(ReactionType), { message: 'Reaction type must be a valid value' })
-  reactionType?: ReactionType;
+
 }

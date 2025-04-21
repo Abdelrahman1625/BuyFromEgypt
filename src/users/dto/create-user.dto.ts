@@ -1,27 +1,23 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsPhoneNumber, Matches, MinLength, ValidateIf } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsPhoneNumber, MinLength, ValidateIf } from 'class-validator';
 import { TypeEnum, RoleEnum } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateUserDto {
-  @ApiProperty({ example: 'Username', description: 'Full name of the user' })
+  @ApiProperty({ example: 'John Doe', description: 'Full name of the user' })
   @IsNotEmpty({ message: 'Name is required' })
   name: string;
 
-  @ApiProperty({ example: 'email@example.com', description: 'Email address of the user' })
+  @ApiProperty({ example: 'john.doe@example.com', description: 'Email address of the user' })
   @IsEmail({}, { message: 'Invalid email format' })
   email: string;
 
-  @ApiProperty({ example: 'password/123', description: 'Password for the user account' })
+  @ApiProperty({ example: 'password123', description: 'Password for the user account' })
   @IsNotEmpty({ message: 'Password is required' })
   @MinLength(6, { message: 'Password must be at least 6 characters long' })
-  @Matches(/^.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?].*$/, {
-    message: 'Password must contain at least one special character',
-  })
   password: string;
 
   @ApiProperty({ example: '+201234567890', description: 'Phone number of the user' })
   @IsPhoneNumber(undefined, { message: 'Invalid phone number format' })
-  @IsNotEmpty({ message: 'Phone number is required' })
   phoneNumber: string;
 
   @ApiProperty({ enum: TypeEnum, example: TypeEnum.IMPORTER, description: 'Type of the user (IMPORTER or EXPORTER)' })
@@ -60,11 +56,9 @@ export class CreateUserDto {
 
   @ApiProperty({ enum: RoleEnum, example: RoleEnum.SUPER_ADMIN, description: 'Role of the user (ADMIN, USER, MODERATOR)' })
   @IsNotEmpty({ message: 'Role is required' })
-  @IsEnum(RoleEnum, { message: 'Role must be either ADMIN, USER, or SUPER_ADMIN' })
+  @IsEnum(RoleEnum, { message: 'Role must be either ADMIN, USER, or MODERATOR' })
   role: RoleEnum;
-
   @ApiProperty({ example: true, description: 'Indicates whether the user is active or not' })
   @IsNotEmpty({ message: 'Active status is required' })
   active: boolean;
 }
-

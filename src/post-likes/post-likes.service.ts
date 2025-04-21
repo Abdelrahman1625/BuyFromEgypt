@@ -1,73 +1,102 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePostLikeDto } from './dto/create-post-like.dto';
-import { ReactionType } from '@prisma/client';
 
 @Injectable()
 export class PostLikesService {
   constructor(private prisma: PrismaService) {}
 
-  private allowedReactions = ['LIKE', 'LOVE', 'HAHA', 'WOW', 'SAD', 'ANGRY'];
+  async likePost(userId: string, postId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { postId },
+    });
 
-  async create(createPostLikeDto: CreatePostLikeDto) {
-    const { postId, userId, action, reactionType } = createPostLikeDto;
-
-    if (reactionType && !this.allowedReactions.includes(reactionType)) {
-      throw new Error(`Invalid reaction type: ${reactionType}`);
+    if (!post) {
+      throw new NotFoundException('Post not found');
     }
 
-    if (action === 'add') {
-      return this.prisma.postLike.create({
-        data: { postId, userId, reactionType: reactionType as ReactionType },
-      });
-    } else if (action === 'remove') {
-      return this.prisma.postLike.deleteMany({
-        where: { postId, userId },
-      });
-    } else if (action === 'update') {
-      return this.prisma.postLike.updateMany({
-        where: { postId, userId },
-        data: { reactionType: reactionType as ReactionType },
-      });
-    } else {
-      throw new Error('Invalid action');
-    }
-  }
+    const existingLike = await this.prisma.postLike.findUnique({
+      where: {
+        userId_postId: {
+          userId,
+          postId,
+        },
+      },
+    });
 
-  async findAll() {
-    const postLikes = await this.prisma.postLike.findMany();
-    if (!postLikes || postLikes.length === 0) {
-      throw new Error('No post likes found');
+    if (existingLike) {
+      return this.unlikePost(userId, postId);
     }
-    return postLikes.map((postLike) => {
-      return {
-        id: postLike.id,
-        postId: postLike.postId,
-        userId: postLike.userId,
-        reactionType: postLike.reactionType,
-      };
+    return this.prisma.postLike.create({
+      data: {
+        userId,
+        postId,
+      },
+      include: {
+        user: {
+          select: {
+            userId: true,
+            name: true,
+            profileImage: true,
+          },
+        },
+        post: true,
+      },
     });
   }
 
-  async findOne(id: string) {
-    const postLike = await this.prisma.postLike.findUnique({
-      where: { id: id.toString() },
-    });
-    if (!postLike) {
-      throw new Error(`PostLike with id ${id} not found`);
-    }
-    return postLike;
-  }
-
-  async remove(id: string) {
-    const postLike = await this.prisma.postLike.findUnique({
-      where: { id: id.toString() },
-    });
-    if (!postLike) {
-      throw new Error(`PostLike with id ${id} not found`);
-    }
+  async unlikePost(userId: string, postId: string) {
     return this.prisma.postLike.delete({
-      where: { id: id.toString() },
+      where: {
+        userId_postId: {
+          userId,
+          postId,
+        },
+      },
+    });
+  }
+
+  async getPostLikes(postId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { postId },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+    return this.prisma.postLike.findMany({
+      where: { postId },
+      include: {
+        user: {
+          select: {
+            userId: true,
+            name: true,
+            profileImage: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getUserLikes(userId: string) {
+    return this.prisma.postLike.findMany({
+      where: { userId },
+      include: {
+        post: true,
+      },
+    });
+  }
+
+  async countLikes(postId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { postId },
+    });
+
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+    return this.prisma.postLike.count({
+      where: { postId },
     });
   }
 }

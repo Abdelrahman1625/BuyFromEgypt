@@ -8,11 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './common/guards/roles.guard';
 import { ProductsModule } from './products/products.module';
-// import { PostsModule } from './posts/posts.module';
-// import { CommentsModule } from './comments/comments.module';
-// import { PostLikesModule } from './post-likes/post-likes.module';
-import { CategoriesModule } from './categories/categories.module';
-import { RootController } from './root.controller';
+import { PostsModule } from './posts/posts.module';
+import { PostLikesModule } from './post-likes/post-likes.module';
 
 @Module({
   imports: [
@@ -20,10 +17,12 @@ import { RootController } from './root.controller';
     UsersModule,
     AuthModule,
     ProductsModule,
-    CategoriesModule,
-    // PostsModule, CommentsModule, PostLikesModule
+    PostsModule,
+    PostLikesModule,
+    // CommentsModule,
   ],
-  controllers: [AppController, RootController],
+  controllers: [AppController],
   providers: [AppService, PrismaService],
+  //  , { provide: APP_GUARD, useClass: RolesGuard }],
 })
 export class AppModule {}

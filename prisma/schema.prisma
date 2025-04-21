@@ -25,6 +25,9 @@ model User {
   industrySector     String?
   commercial         String?
   address            String?         @db.Text
+  otpCode            String?
+  otpMethod          String?         // Send OTP for Email or Phone
+  otpExpiry          DateTime?       // expiryDate for OTP
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   posts              Post[]          @relation("UserPosts")
@@ -39,9 +42,20 @@ model User {
   followers          Follower[]      @relation("FollowedUsers")
   following          Follower[]      @relation("FollowingUsers")
   likedPosts         PostLike[]      @relation("UserLikes")
+  otps               Otp[]
 
   @@index([createdAt])
   @@index([role, active])
+}
+
+model Otp {
+  id           String   @id @default(uuid())
+  userId       String
+  otpCode      String
+  identifier   String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [userId])
 }
 
 model Follower {
@@ -75,16 +89,15 @@ model Post {
 }
 
 model PostLike {
-  id           String       @id @default(uuid())
-  postId       String
-  userId       String
-  createdAt    DateTime     @default(now())
-  reactionType ReactionType @default(LIKE)
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
 
   post Post @relation(fields: [postId], references: [postId])
   user User @relation("UserLikes", fields: [userId], references: [userId])
 
-  @@unique([postId, userId])
+  @@unique([userId, postId])
   @@index([postId])
   @@index([userId])
 }
@@ -239,13 +252,4 @@ enum MessageType {
   TEXT
   IMAGE
   VIDEO
-}
-
-enum ReactionType {
-  LIKE
-  LOVE
-  HAHA
-  WOW
-  SAD
-  ANGRY
 }

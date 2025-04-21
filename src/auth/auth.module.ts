@@ -4,6 +4,8 @@ import { AuthController } from './auth.controller';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from '../common/constants';
+import { MailModule } from '../MailService/mail.module';
+import { MobileModule } from 'src/MobileService/mobile.module';
 
 @Module({
   imports: [
@@ -12,11 +14,12 @@ import { jwtConstants } from '../common/constants';
       secret: jwtConstants.secret,
       signOptions: { expiresIn: jwtConstants.expireIn },
     }),
+    MailModule,
+    MobileModule
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService],
 })
-export class AuthModule {
-}
+export class AuthModule {}
 
-console.log( jwtConstants.expireIn);
+console.log(jwtConstants.expireIn);

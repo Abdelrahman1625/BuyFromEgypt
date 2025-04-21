@@ -1,57 +1,73 @@
-import { Controller, Post, Body, Get, Param, Delete, Patch, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Delete, Get, Param, Req, UseGuards, HttpStatus } from '@nestjs/common';
 import { PostLikesService } from './post-likes.service';
-import { CreatePostLikeDto } from './dto/create-post-like.dto';
-import { ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import { PostLikeResponseDto } from './dto/post-like-response.dto';
+import { AuthGuard } from '../auth/guards/auth.guard';
+import { Request } from 'express';
 
-@Controller('post-likes')
+interface AuthenticatedRequest extends Request {
+  user: {
+    userId: string;
+  };
+}
+
+@ApiTags('Post Likes')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
+@Controller('posts')
 export class PostLikesController {
   constructor(private readonly postLikesService: PostLikesService) {}
 
-  @Post()
-  @ApiResponse({ status: HttpStatus.CREATED, description: 'Post like created successfully.' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid data provided.' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized action.' })
-  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden action.' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal server error.' })
-  create(@Body() createPostLikeDto: CreatePostLikeDto) {
-    return this.postLikesService.create(createPostLikeDto);
+  @Post(':postId/likes')
+  @ApiOperation({ summary: 'Like a post' })
+  @ApiParam({ name: 'postId', description: 'ID of the post to like' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Post liked successfully',
+    type: PostLikeResponseDto,
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please login to like a post' })
+  async likePost(@Req() req: AuthenticatedRequest, @Param('postId') postId: string) {
+    return this.postLikesService.likePost(req.user.userId, postId);
   }
 
-  @Get()
-  @ApiResponse({ status: HttpStatus.OK, description: 'Post likes retrieved successfully.' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized action.' })
-  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden action.' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post likes not found.' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal server error.' })
-  findAll() {
-    return this.postLikesService.findAll();
+  @Delete(':postId/likes')
+  @ApiOperation({ summary: 'Unlike a post' })
+  @ApiParam({ name: 'postId', description: 'ID of the post to unlike' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Post unliked successfully',
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please login to unlike a post' })
+  async unlikePost(@Req() req: AuthenticatedRequest, @Param('postId') postId: string) {
+    return this.postLikesService.unlikePost(req.user.userId, postId);
   }
 
-  @Get(':id')
-  @ApiResponse({ status: HttpStatus.OK, description: 'Post like retrieved successfully.' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid ID provided.' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized action.' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post like not found.' })
-  findOne(@Param('id') id: string) {
-    return this.postLikesService.findOne(id);
+  @Get(':postId/likes')
+  @ApiOperation({ summary: 'Get all likes for a post' })
+  @ApiParam({ name: 'postId', description: 'ID of the post' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'List of post likes',
+    type: [PostLikeResponseDto],
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found' })
+  async getPostLikes(@Param('postId') postId: string) {
+    return this.postLikesService.getPostLikes(postId);
   }
 
-  @Patch()
-  @ApiResponse({ status: HttpStatus.OK, description: 'Post like updated successfully.' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid data provided.' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized action.' })
-  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden action.' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal server error.' })
-  update(@Body() updatePostLikeDto: CreatePostLikeDto) {
-    return this.postLikesService.create({ ...updatePostLikeDto, action: 'update' });
-  }
-
-  @Delete(':id')
-  @ApiResponse({ status: HttpStatus.OK, description: 'Post like deleted successfully.' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid ID provided.' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized action.' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post like not found.' })
-  remove(@Param('id') id: string) {
-    return this.postLikesService.remove(id);
+  @Get(':postId/likes/count')
+  @ApiOperation({ summary: 'Get count of likes for a post' })
+  @ApiParam({ name: 'postId', description: 'ID of the post' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Number of likes',
+    type: Number,
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found' })
+  async countLikes(@Param('postId') postId: string) {
+    return this.postLikesService.countLikes(postId);
   }
 }
