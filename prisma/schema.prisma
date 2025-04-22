@@ -103,7 +103,7 @@ model PostLike {
 }
 
 model Comment {
-  id        String   @id @default(uuid())
+  commentId String   @id @default(uuid())
   postId    String
   userId    String
   content   String

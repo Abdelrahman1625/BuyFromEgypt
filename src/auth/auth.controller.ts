@@ -1,7 +1,7 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Get, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dtos/Register.dto';
-import { ApiBody, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { LoginDto } from './dtos/Login.dto';
 import { User } from '@prisma/client';
 import { VerifyOtpDto } from './dtos/VerifyOTP.dto';
@@ -63,7 +63,7 @@ export class AuthController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('verify-otp-and-send-reset-link')
+  @Post('verify-otp-link')
   @ApiBody({ type: VerifyOtpDto })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -88,7 +88,7 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Invalid token or password validation failed',
   })
-  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
   }
 }

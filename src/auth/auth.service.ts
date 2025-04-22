@@ -127,6 +127,8 @@ export class AuthService {
     if (!otpRecord) throw new UnauthorizedException('Invalid OTP.');
     if (new Date() > otpRecord.expiresAt) throw new UnauthorizedException('OTP has expired.');
 
+    await this.prisma.otp.delete({ where: { id: otpRecord.id } });
+
     return { message: 'OTP verified successfully.' };
   }
 
@@ -151,13 +153,18 @@ export class AuthService {
     if (!otpRecord) throw new UnauthorizedException('Invalid OTP.');
     if (new Date() > otpRecord.expiresAt) throw new UnauthorizedException('OTP has expired.');
 
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}&identifier=${encodeURIComponent(identifier)}`;
+    const OTPGen = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await this.prisma.otp.update({
       where: { id: otpRecord.id },
-      data: { otpCode: resetToken },
+      data: {
+        otpCode: OTPGen,
+        expiresAt: expiresAt,
+      },
     });
+
+    const resetLink = ` http://localhost:${process.env.PORT ?? 3000}/reset-password?token=${OTPGen}`;
 
     if (identifier.includes('@')) {
       await this.mailService.sendResetLink(user.email, resetLink);
@@ -168,39 +175,53 @@ export class AuthService {
     return { message: 'OTP verified successfully. Reset link sent.' };
   }
 
-  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
-    const { token, newPassword } = resetPasswordDto;
+  async validateResetToken(token: string): Promise<boolean> {
+    const otpRecord = await this.prisma.otp.findFirst({
+      where: { otpCode: token },
+      orderBy: { createdAt: 'desc' },
+    });
 
-    if (!token) {
-      throw new UnauthorizedException('Token is required.');
+    if (!otpRecord) {
+      throw new UnauthorizedException('Invalid reset token.');
     }
+
+    if (new Date() > otpRecord.expiresAt) {
+      throw new UnauthorizedException('Reset token has expired.');
+    }
+
+    return true;
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
+    const { token, newPassword, identifier } = resetPasswordDto;
 
     const otpRecord = await this.prisma.otp.findFirst({
       where: { otpCode: token },
       orderBy: { createdAt: 'desc' },
     });
 
-    if (!otpRecord) throw new UnauthorizedException('Invalid or expired token.');
-    if (new Date() > otpRecord.expiresAt) throw new UnauthorizedException('Token has expired.');
+    if (!otpRecord) {
+      throw new UnauthorizedException('Invalid reset token.');
+    }
+
+    if (new Date() > otpRecord.expiresAt) {
+      throw new UnauthorizedException('Reset token has expired.');
+    }
 
     const user = await this.prisma.user.findUnique({
       where: { userId: otpRecord.userId },
     });
 
-    if (!user) throw new UnauthorizedException('User not found.');
+    if (!user) {
+      throw new UnauthorizedException('User not found.');
+    }
 
-    if (!newPassword || newPassword.length < 8) {
-      throw new UnauthorizedException('Password must be at least 8 characters long.');
-    }
-    if (newPassword.includes(' ')) {
-      throw new UnauthorizedException('Password cannot contain spaces.');
-    }
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
-    if (!passwordRegex.test(newPassword)) {
-      throw new UnauthorizedException('Password must contain at least one letter, one number, and one special character.');
+    if (identifier && otpRecord.identifier !== identifier) {
+      throw new UnauthorizedException('Invalid reset request.');
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
+
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { userId: user.userId },

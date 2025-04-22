@@ -1,7 +1,6 @@
-export class CommentEntity {
-  id: string;
+export class Comment {
+  commentId: string;
   postId: string;
   userId: string;
   content: string;
-  createdAt: Date;
 }

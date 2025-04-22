@@ -7,11 +7,6 @@ export class CreateCommentDto {
   @IsString()
   postId: string;
 
-  @ApiProperty({ example: 'user-id-456', description: 'ID of the user making the comment' })
-  @IsNotEmpty({ message: 'User ID is required' })
-  @IsString()
-  userId: string;
-
   @ApiProperty({ example: 'This is a comment.', description: 'Content of the comment' })
   @IsNotEmpty({ message: 'Comment content is required' })
   @IsString()

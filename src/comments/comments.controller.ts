@@ -1,61 +1,88 @@
-import { Controller, Post, Body, Get, Param, Delete, Patch, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Delete, Patch, HttpStatus, Req, UseGuards } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
-import { ApiBody, ApiResponse } from '@nestjs/swagger';
+import { UpdateCommentDto } from './dto/update-comment.dto';
+import { ApiBody, ApiResponse, ApiTags, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { Request } from 'express';
+import { Comment } from './entities/comment.entity';
+import { AuthGuard } from '../auth/guards/auth.guard';
 
+@ApiTags('comments')
+@ApiBearerAuth()
 @Controller('comments')
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Post()
+  @UseGuards(AuthGuard)
   @ApiBody({ type: CreateCommentDto })
-  @ApiResponse({ status: HttpStatus.CREATED, description: 'Comment created successfully' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Comment created successfully',
+    type: Comment,
+  })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
-  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
-  async create(@Body() createCommentDto: CreateCommentDto) {
-    return this.commentsService.create(createCommentDto);
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
+  async create(@Req() req: Request & { user: { userId: string } }, @Body() createCommentDto: CreateCommentDto) {
+    return this.commentsService.create(req.user.userId, createCommentDto);
   }
 
-  @Get()
-  @ApiResponse({ status: HttpStatus.OK, description: 'Get all comments' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'No comments found' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
-  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
-  findAll() {
-    return this.commentsService.findAll();
-  }
-
-  @Get(':id')
-  @ApiResponse({ status: HttpStatus.OK, description: 'Get comment by ID' })
+  @Get(':commentId')
+  @ApiParam({ name: 'commentId', description: 'ID of the comment' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Get comment by ID',
+    type: Comment,
+  })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Comment not found' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
-  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
-  findOne(@Param('id') id: string) {
-    return this.commentsService.findOne(id);
+  async findById(@Param('commentId') commentId: string) {
+    return this.commentsService.findById(commentId);
   }
 
-  @Patch(':id')
-  @ApiResponse({ status: HttpStatus.OK, description: 'Comment updated successfully' })
+  @Patch(':commentId')
+  @UseGuards(AuthGuard)
+  @ApiParam({ name: 'commentId', description: 'ID of the comment' })
+  @ApiBody({ type: UpdateCommentDto })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Comment updated successfully',
+    type: Comment,
+  })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Comment not found' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
-  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
-  update(@Param('id') id: string, @Body() updateCommentDto: any) {
-    return this.commentsService.update(id, updateCommentDto);
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Not your comment' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
+  async update(
+    @Req()
+    req: Request & {
+      user: { userId: string };
+    },
+    @Param('commentId') commentId: string,
+    @Body() updateCommentDto: UpdateCommentDto
+  ) {
+    return this.commentsService.update(commentId, req.user.userId, updateCommentDto);
   }
 
-  @Delete(':id')
-  @ApiResponse({ status: HttpStatus.OK, description: 'Comment deleted successfully' })
+  @Delete(':commentId')
+  @UseGuards(AuthGuard)
+  @ApiParam({ name: 'commentId', description: 'ID of the comment' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Comment deleted successfully',
+    schema: {
+      example: { message: 'Comment deleted successfully' },
+    },
+  })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Comment not found' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
-  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
-  remove(@Param('id') id: string) {
-    return this.commentsService.remove(id);
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Not your comment' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
+  async remove(
+    @Req()
+    req: Request & {
+      user: { userId: string; role: string };
+    },
+    @Param('commentId') commentId: string
+  ) {
+    return this.commentsService.delete(commentId, req.user.userId, req.user.role);
   }
 }
