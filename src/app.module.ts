@@ -10,6 +10,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { ProductsModule } from './products/products.module';
 import { PostsModule } from './posts/posts.module';
 import { PostLikesModule } from './post-likes/post-likes.module';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { PostLikesModule } from './post-likes/post-likes.module';
     ProductsModule,
     PostsModule,
     PostLikesModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [
