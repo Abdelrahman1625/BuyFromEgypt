@@ -17,13 +17,24 @@ export class UsersController {
     private readonly usersService: UsersService,
     private postLikesService: PostLikesService
   ) {}
-  @Get()
+  @Get('admin')
+  @Roles(`${RoleEnum.ADMIN}`)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiResponse({ status: HttpStatus.ACCEPTED, description: 'Get all users' })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Not Found any Users' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
   findAll() {
     return this.usersService.findAll();
   }
 
   @ApiBody({ type: CreateUserDto })
-  @Post()
+  @Roles(`${RoleEnum.ADMIN}`)
+  @ApiResponse({ status: HttpStatus.CREATED, description: 'User created successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'This allow only for admin' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
+  @Post('admin')
   create(@Body() data: CreateUserDto) {
     console.log(data);
     return this.usersService.createUser(data);
@@ -31,6 +42,11 @@ export class UsersController {
 
   @Put('profile')
   @UseGuards(AuthGuard)
+  @Roles(`${RoleEnum.ADMIN}`, `${RoleEnum.USER}`)
+  @ApiResponse({ status: HttpStatus.OK, description: 'User updated successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
   async updateUser(@Req() req: Request & { user: { userId: string } }, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.updateUser(req.user.userId, updateUserDto);
   }
@@ -38,6 +54,13 @@ export class UsersController {
   @Put('admin/:id')
   @Roles(`${RoleEnum.ADMIN}`)
   @UseGuards(AuthGuard, RolesGuard)
+  @ApiBody({ type: UpdateUserForAdminDto })
+  @ApiResponse({ status: HttpStatus.OK, description: 'User updated successfully By Admin' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'This allow only for admin' })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
   async updateUserForAdmin(@Param('id') userId: string, @Body() updateUserForAdminDto: UpdateUserForAdminDto) {
     return this.usersService.updateUser(userId, updateUserForAdminDto);
   }
@@ -55,7 +78,7 @@ export class UsersController {
   async approveUser(@Param('id') userId: string) {
     return this.usersService.toggleUserState(userId, 'approve');
   }
-  
+
   @Put('admin/deactivateUser/:id')
   @Roles(RoleEnum.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
@@ -70,8 +93,14 @@ export class UsersController {
   }
 
   @Delete('admin/:id')
-  @UseGuards(AuthGuard)
   @Roles(`${RoleEnum.ADMIN}`)
+  @UseGuards(AuthGuard, RolesGuard)
+  @ApiResponse({ status: HttpStatus.OK, description: 'User deleted successfully By Admin' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'This allow only for admin' })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User with this ID not found' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
   async delete(@Param('id') userId: string) {
     return this.usersService.deleteUser(userId);
   }
