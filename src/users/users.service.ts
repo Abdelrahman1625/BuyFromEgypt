@@ -27,4 +27,19 @@ export class UsersService {
     await this.prisma.user.delete({ where: { userId } });
     return `User with ID ${userId} has been deleted successfully.`;
   }
+
+  async toggleUserState(userId: string, state: 'approve' | 'deactivate'): Promise<{ message: string }> {
+    const user = await this.prisma.user.findFirst({ where: { userId } });
+
+    if (!user) throw new NotFoundException(`User with ID ${userId} not found.`);
+
+    const isActive = !user.active;
+
+    await this.prisma.user.update({
+      where: { userId },
+      data: { active: isActive },
+    });
+
+    return { message: `User with ID ${userId} has been ${isActive ? 'approved' : 'deactivated'} successfully.` };
+  }
 }
