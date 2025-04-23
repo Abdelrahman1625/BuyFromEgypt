@@ -10,7 +10,6 @@ import { RequestResetDto } from './dtos/RequestReset.dto';
 import { VerifyOtpDto } from './dtos/VerifyOTP.dto';
 import { ResetPasswordDto } from './dtos/ResetPassword.dto';
 import { MailService } from '../MailService/mail.service';
-import { MobileService } from '../MobileService/mobile.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -18,8 +17,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private mailService: MailService,
-    private mobileService: MobileService
+    private mailService: MailService
   ) {}
 
   async register(registerDto: RegisterDto): Promise<{ user: User; message: string }> {
@@ -99,8 +97,6 @@ export class AuthService {
 
     if (identifier.includes('@')) {
       await this.mailService.sendOtpEmail(user.email, otpCode);
-    } else {
-      await this.mobileService.sendOtpSms(identifier, otpCode);
     }
 
     return { message: 'OTP sent successfully.' };
@@ -168,8 +164,6 @@ export class AuthService {
 
     if (identifier.includes('@')) {
       await this.mailService.sendResetLink(user.email, resetLink);
-    } else {
-      await this.mobileService.sendResetLinkSms(identifier, resetLink);
     }
 
     return { message: 'OTP verified successfully. Reset link sent.' };

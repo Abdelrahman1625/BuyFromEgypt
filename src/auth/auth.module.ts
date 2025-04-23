@@ -5,7 +5,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from '../common/constants';
 import { MailModule } from '../MailService/mail.module';
-import { MobileModule } from '../MobileService/mobile.module';
 
 @Module({
   imports: [
@@ -14,8 +13,7 @@ import { MobileModule } from '../MobileService/mobile.module';
       secret: jwtConstants.secret,
       signOptions: { expiresIn: jwtConstants.expireIn },
     }),
-    MailModule,
-    MobileModule
+    MailModule
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService],
