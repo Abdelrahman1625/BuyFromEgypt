@@ -37,7 +37,7 @@ export class FollowService {
 
     return {
       message: `User ${followerId} is now following user ${followingId}.`,
-      follow: { id: follow.followId, follower: follow.follower, following: follow.following, createdAt: follow.createdAt }, // Explicitly include 'id'
+      follow: { id: follow.followId, follower: follow.follower, following: follow.following, createdAt: follow.createdAt },
     };
   }
 
@@ -46,7 +46,7 @@ export class FollowService {
     return this.prisma.follower
       .findMany({
         where: { followingId: userId },
-        select: { followId: true, follower: true, following: true, createdAt: true }, // Explicitly select 'id' (renamed to 'followId')
+        select: { followId: true, follower: true, following: true, createdAt: true },
       })
       .then((follows) =>
         follows.map((follow) => ({
@@ -63,7 +63,7 @@ export class FollowService {
     return this.prisma.follower
       .findMany({
         where: { followerId: userId },
-        select: { followId: true, follower: true, following: true, createdAt: true }, // Explicitly select 'id' (renamed to 'followId')
+        select: { followId: true, follower: true, following: true, createdAt: true },
       })
       .then((follows) =>
         follows.map((follow) => ({
