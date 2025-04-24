@@ -28,6 +28,18 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @Get(':id')
+  @ApiResponse({ status: HttpStatus.OK, description: 'User retrieved successfully By Admin' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'This is allowed only for admin' })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please login and try again' })
+  async getUserById(@Param('id') userId: string) {
+    return this.usersService.getUser(userId);
+  }
+
+
   @ApiBody({ type: CreateUserDto })
   @Roles(`${RoleEnum.ADMIN}`)
   @ApiResponse({ status: HttpStatus.CREATED, description: 'User created successfully' })
@@ -35,9 +47,9 @@ export class UsersController {
   @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'This allow only for admin' })
   @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
   @Post('admin')
-  create(@Body() data: CreateUserDto) {
-    console.log(data);
-    return this.usersService.createUser(data);
+  create(@Body() createUserDto: CreateUserDto) {
+    console.log(createUserDto);
+    return this.usersService.createUser(createUserDto);
   }
 
   @Put('profile')

@@ -49,12 +49,12 @@ CREATE TABLE "Otp" (
 
 -- CreateTable
 CREATE TABLE "Follower" (
-    "id" TEXT NOT NULL,
+    "followId" TEXT NOT NULL,
     "followerId" TEXT NOT NULL,
     "followingId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "Follower_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Follower_pkey" PRIMARY KEY ("followId")
 );
 
 -- CreateTable

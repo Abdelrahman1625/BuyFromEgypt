@@ -4,13 +4,23 @@ import { User } from './entities/user.entity';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateUserForAdminDto } from './dto/update-user.dto';
 import { UpdateUserDto } from './dto/update-userForAdmin.dto';
+import { ValidationService } from '../common/validation/validation.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private validationService: ValidationService
+  ) {}
 
   async findAll() {
     return this.prisma.user.findMany();
+  }
+
+  async getUser(userId: string): Promise<User> {
+    const user = await this.prisma.user.findUnique({ where: { userId } });
+    if (!user) throw new NotFoundException(`User with ID '${userId}' not found.`);
+    return user;
   }
 
   async createUser(createUserDto: CreateUserDto): Promise<User> {

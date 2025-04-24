@@ -26,8 +26,8 @@ model User {
   commercial         String?
   address            String?         @db.Text
   otpCode            String?
-  otpMethod          String?         // Send OTP for Email or Phone
-  otpExpiry          DateTime?       // expiryDate for OTP
+  otpMethod          String?
+  otpExpiry          DateTime?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   posts              Post[]          @relation("UserPosts")
@@ -49,17 +49,17 @@ model User {
 }
 
 model Otp {
-  id           String   @id @default(uuid())
-  userId       String
-  otpCode      String
-  identifier   String
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  user         User     @relation(fields: [userId], references: [userId])
+  id         String   @id @default(uuid())
+  userId     String
+  otpCode    String
+  identifier String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [userId])
 }
 
 model Follower {
-  id          String   @id @default(uuid())
+  followId    String   @id @default(uuid())
   followerId  String
   followingId String
   createdAt   DateTime @default(now())

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { CreateMailDto } from './dto/CreateMailDto';
+import { mailConstants } from '../common/constants';
 
 @Injectable()
 export class MailService {
@@ -11,8 +12,8 @@ export class MailService {
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS,
+        user: mailConstants.user,
+        pass: mailConstants.pass,
       },
     });
   }
@@ -55,6 +56,7 @@ export class MailService {
 
     await this.transporter.sendMail(mailOptions);
   }
+
   async sendMail(createMailDto: CreateMailDto): Promise<void> {
     const { to, subject, text, html } = createMailDto;
 

@@ -12,7 +12,11 @@ async function bootstrap(): Promise<express.Express> {
   if (cachedApp) return cachedApp;
 
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
+
+  app.enableCors();
+
   setupSwagger(app);
+
   await app.init();
 
   cachedApp = server;
@@ -20,11 +24,6 @@ async function bootstrap(): Promise<express.Express> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  try {
-    const app = await bootstrap();
-    return app(req, res);
-  } catch (error) {
-    console.error('Error in Vercel handler:', error);
-    res.status(500).send('Internal Server Error');
-  }
+  const app = await bootstrap();
+  return app(req, res);
 }

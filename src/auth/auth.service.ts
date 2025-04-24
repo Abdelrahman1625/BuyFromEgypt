@@ -49,7 +49,10 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<{ user: User; token: string }> {
-    const user = await this.prisma.user.findFirst({ where: { email: loginDto.email } });
+    const user = await this.prisma.user.findFirst({
+      where: { email: loginDto.email },
+      include: { followers: true, following: true },
+    });
 
     if (!user) {
       throw new UnauthorizedException('The email address is not registered. Please sign up first.');
@@ -84,7 +87,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('User not found.');
 
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await this.prisma.otp.create({
       data: {
