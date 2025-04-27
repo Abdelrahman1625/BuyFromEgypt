@@ -126,9 +126,14 @@ export class AuthService {
     if (!otpRecord) throw new UnauthorizedException('Invalid OTP.');
     if (new Date() > otpRecord.expiresAt) throw new UnauthorizedException('OTP has expired.');
 
+    await this.prisma.user.update({
+      where: { userId: user.userId },
+      data: { emailVerified: true },
+    });
+
     await this.prisma.otp.delete({ where: { id: otpRecord.id } });
 
-    return { message: 'OTP verified successfully.' };
+    return { message: 'OTP verified successfully. Email has been verified.' };
   }
 
   async verifyOtpAndSendResetLink(verifyOtpDto: VerifyOtpDto): Promise<{ message: string }> {
