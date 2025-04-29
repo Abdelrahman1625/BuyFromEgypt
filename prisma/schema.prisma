@@ -24,26 +24,28 @@ model User {
   industrial         String?
   industrySector     String?
   commercial         String?
-  address            String?         @db.Text
+  address            String?          @db.Text
   otpCode            String?
   otpMethod          String?
   otpExpiry          DateTime?
-  emailVerified      Boolean         @default(false)
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  posts              Post[]          @relation("UserPosts")
-  comments           Comment[]       @relation("UserComments")
-  certifications     Certification[] @relation("UserCertifications")
-  orders             Order[]         @relation("UserOrders")
-  products           Product[]       @relation("UserProducts")
-  approvedProducts   Product[]       @relation("ApprovedProducts")
-  messagesSent       Message[]       @relation("SentMessages")
-  messagesReceived   Message[]       @relation("ReceivedMessages")
-  categories         Category[]      @relation("UserCategories")
-  followers          Follower[]      @relation("FollowedUsers")
-  following          Follower[]      @relation("FollowingUsers")
-  likedPosts         PostLike[]      @relation("UserLikes")
+  emailVerified      Boolean          @default(false)
+  isOnline           Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  posts              Post[]           @relation("UserPosts")
+  comments           Comment[]        @relation("UserComments")
+  certifications     Certification[]  @relation("UserCertifications")
+  orders             Order[]          @relation("UserOrders")
+  products           Product[]        @relation("UserProducts")
+  approvedProducts   Product[]        @relation("ApprovedProducts")
+  messagesSent       Message[]        @relation("SentMessages")
+  messagesReceived   Message[]        @relation("ReceivedMessages")
+  categories         Category[]       @relation("UserCategories")
+  followers          Follower[]       @relation("FollowedUsers")
+  following          Follower[]       @relation("FollowingUsers")
+  likedPosts         PostLike[]       @relation("UserLikes")
   otps               Otp[]
+  conversationParticipants    ConversationParticipant[]
 
   @@index([createdAt])
   @@index([role, active])
@@ -209,19 +211,51 @@ model PostImage {
   @@index([postId])
 }
 
-model Message {
-  messageId   String      @id @default(uuid())
-  senderId    String
-  receiverId  String
-  content     String      @db.Text
-  messageType MessageType
-  createdAt   DateTime    @default(now())
-  sender      User        @relation("SentMessages", fields: [senderId], references: [userId])
-  receiver    User        @relation("ReceivedMessages", fields: [receiverId], references: [userId])
+model Conversation {
+  id            String      @id @default(uuid())
+  name          String?
+  type          ConversationType
+  participants  ConversationParticipant[]
+  messages      Message[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  @@index([createdAt])
+}
 
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  user           User         @relation(fields: [userId], references: [userId])
+  userId         String
+  joinedAt       DateTime     @default(now())
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  messageId       String        @id @default(uuid())
+  conversation    Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId  String
+  sender          User          @relation("SentMessages", fields: [senderId], references: [userId])
+  senderId        String
+  receiver        User          @relation("ReceivedMessages", fields: [receiverId], references: [userId])
+  receiverId      String
+  content         String        @db.Text
+  messageType     MessageType
+  createdAt       DateTime      @default(now())
+  seen            Boolean       @default(false)
+  delivered       Boolean       @default(false)
+
+  @@index([conversationId])
   @@index([senderId])
   @@index([receiverId])
   @@index([createdAt])
+}
+
+enum ConversationType {
+  PRIVATE
+  GROUP
 }
 
 model Category {

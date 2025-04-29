@@ -2,7 +2,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication } from '@nestjs/common';
 
 export function setupSwagger(app: INestApplication) {
-  const config = new DocumentBuilder().setTitle('API Docs').setDescription('NestJS Swagger Documentation').setVersion('1.0').build();
+  const config = new DocumentBuilder().setTitle('API Docs').setDescription('NestJS API Documentation with WebSocket Support').setVersion('1.0').addTag('chat').addBearerAuth().build();
 
   const document = SwaggerModule.createDocument(app, config);
 

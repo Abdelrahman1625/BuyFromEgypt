@@ -1,7 +1,8 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './common/filters/all-exceptions.filter';
+import { setupSwagger } from './swagger';
+import { SocketIOAdapter } from './socketio.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -10,13 +11,29 @@ async function bootstrap() {
   const httpAdapter = app.get(HttpAdapterHost);
   app.useGlobalFilters(new PrismaExceptionFilter(httpAdapter));
 
-  const config = new DocumentBuilder().setTitle('Buy From Egypt API').setDescription('API Documentation for Buy From Egypt').setVersion('1.0').build();
+  const socketIoAdapter = new SocketIOAdapter(app);
+  if (process.env.NODE_ENV === 'production') {
+    await socketIoAdapter.connectToRedis();
+  }
+  app.useWebSocketAdapter(socketIoAdapter);
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, document);
+  setupSwagger(app);
 
-  await app.listen(process.env.PORT ?? 3000);
-  console.log('📄 Swagger Docs available at: http://localhost:3000/api-docs');
+  app.enableCors({
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
+
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+
+  console.log(`🚀 Server running on http://localhost:${port}`);
+  console.log(`📄 Swagger Docs available at: http://localhost:${port}/api-docs`);
 }
 
-bootstrap();
+if (require.main === module) {
+  bootstrap();
+}
+
+export default bootstrap;
