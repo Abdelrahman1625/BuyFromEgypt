@@ -5,12 +5,14 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateUserForAdminDto } from './dto/update-user.dto';
 import { UpdateUserDto } from './dto/update-userForAdmin.dto';
 import { ValidationService } from '../common/validation/validation.service';
+import { MailService } from '../MailService/mail.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     private prisma: PrismaService,
-    private validationService: ValidationService
+    private validationService: ValidationService,
+    private mailService: MailService
   ) {}
 
   async findAll() {
@@ -49,6 +51,19 @@ export class UsersService {
       where: { userId },
       data: { active: isActive },
     });
+
+    if (state === 'approve' && isActive && user.email) {
+      await this.mailService.sendMail({
+        to: user.email,
+        subject: 'Account Activated',
+        html: `
+          <h1>Your Account Has Been Activated</h1>
+          <p>Dear ${user.name},</p>
+          <p>Your account has been successfully activated. You can now log in and use all features.</p>
+          <p>Thank you for joining us!</p>
+        `,
+      });
+    }
 
     return { message: `User with ID ${userId} has been ${isActive ? 'approved' : 'deactivated'} successfully.` };
   }
