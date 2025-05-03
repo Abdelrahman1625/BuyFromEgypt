@@ -236,4 +236,8 @@ export class AuthService {
 
     return { message: 'Password has been reset successfully. You can now login with your new password.' };
   }
+
+  async logout(): Promise<{ message: string }> {
+    return { message: 'Successfully logged out' };
+  }
 }

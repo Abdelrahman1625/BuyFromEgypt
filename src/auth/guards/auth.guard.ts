@@ -15,11 +15,18 @@ export class AuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
     if (!token) throw new UnauthorizedException('Token not found. Please log in.');
-    const payload = await this.jwtService.verifyAsync(token, { secret: jwtConstants.secret });
-    const user = await this.prisma.user.findFirst({ where: { userId: payload.sub } });
-    if (!user) throw new UnauthorizedException('User not found');
-    request['user'] = payload;
-    return true;
+    try {
+      const payload = await this.jwtService.verifyAsync(token, { secret: jwtConstants.secret });
+      const user = await this.prisma.user.findFirst({ where: { userId: payload.sub } });
+      if (!user) throw new UnauthorizedException('User not found');
+      request['user'] = payload;
+      return true;
+    } catch (error) {
+      if (error instanceof JsonWebTokenError) {
+        throw new UnauthorizedException('Invalid or expired token. Please log in again.');
+      }
+      throw error;
+    }
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {

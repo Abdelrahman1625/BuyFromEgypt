@@ -91,4 +91,14 @@ export class AuthController {
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('logout')
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'User successfully logged out',
+  })
+  async logout(): Promise<{ message: string }> {
+    return this.authService.logout();
+  }
 }

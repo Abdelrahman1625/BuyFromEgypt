@@ -29,6 +29,7 @@ export class UsersController {
   }
 
   @Get(':id')
+  @UseGuards(AuthGuard)
   @ApiResponse({ status: HttpStatus.OK, description: 'User retrieved successfully By Admin' })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
   @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'This is allowed only for admin' })
