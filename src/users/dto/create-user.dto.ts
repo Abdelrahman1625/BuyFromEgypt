@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsPhoneNumber, MinLength, ValidateIf } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsPhoneNumber, MinLength, ValidateIf, IsNumber, Min } from 'class-validator';
 import { TypeEnum, RoleEnum } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -29,30 +29,35 @@ export class CreateUserDto {
   @IsNotEmpty({ message: 'Tax ID is required for business verification' })
   taxId: string;
 
-  @ApiProperty({ example: 'REG123456', description: 'Registration number of the business' })
-  @IsNotEmpty({ message: 'Registration Number is required' })
-  registrationNumber: string;
+  @ApiProperty({ example: '12345678901234', description: 'National ID' })
+  @IsNotEmpty({ message: 'National ID is required' })
+  nationalId: string;
 
-  @ApiProperty({ example: 'Agriculture', description: 'Industrial sector of the business' })
-  @IsNotEmpty({ message: 'Industrial Sector is required' })
-  industrySector: string;
-
-  @ApiProperty({ example: 'CL123456', description: 'Commercial license for legal verification' })
-  @IsNotEmpty({ message: 'Commercial License is required for legal verification' })
-  commercial: string;
-
-  @ApiPropertyOptional({ example: '12345678901234', description: 'National ID for exporters' })
-  @ValidateIf((obj) => obj.type === TypeEnum.EXPORTER)
-  @IsNotEmpty({ message: 'National ID is required for exporters' })
-  nationalId?: string;
-
-  @ApiPropertyOptional({ example: 'Egypt', description: 'Country for importers' })
-  @IsNotEmpty({ message: 'Country is required for importers' })
+  @ApiProperty({ example: 'Egypt', description: 'Country' })
+  @IsNotEmpty({ message: 'Country is required' })
   country: string;
 
-  @ApiProperty({ example: '123 Main St, Cairo, Egypt', description: 'Address of the user' })
-  @IsNotEmpty({ message: 'Address is required' })
-  address: string;
+  @ApiProperty({ example: 25, description: 'Age of the user' })
+  @IsNumber()
+  @Min(18, { message: 'Age must be at least 18' })
+  @IsNotEmpty({ message: 'Age is required' })
+  age: number;
+
+  @ApiPropertyOptional({ example: 'REG123456', description: 'Registration number of the business' })
+  @IsOptional()
+  registrationNumber?: string;
+
+  @ApiPropertyOptional({ example: 'Agriculture', description: 'Industrial sector of the business' })
+  @IsOptional()
+  industrySector?: string;
+
+  @ApiPropertyOptional({ example: 'CL123456', description: 'Commercial license for legal verification' })
+  @IsOptional()
+  commercial?: string;
+
+  @ApiPropertyOptional({ example: '123 Main St, Cairo, Egypt', description: 'Address of the user' })
+  @IsOptional()
+  address?: string;
 
   @ApiProperty({ enum: RoleEnum, example: RoleEnum.SUPER_ADMIN, description: 'Role of the user (ADMIN, USER, MODERATOR)' })
   @IsNotEmpty({ message: 'Role is required' })
