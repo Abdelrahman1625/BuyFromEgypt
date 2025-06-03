@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { RegisterDto } from './dtos/Register.dto';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -21,6 +22,14 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<{ user: User; message: string }> {
+    // Validate required fields
+    const requiredFields = ['name', 'email', 'password', 'phoneNumber', 'type', 'taxId', 'nationalId', 'country', 'age'];
+    const missingFields = requiredFields.filter((field) => !registerDto[field]);
+
+    if (missingFields.length > 0) {
+      throw new UnauthorizedException(`Missing required fields: ${missingFields.join(', ')}`);
+    }
+
     const existingUser = await this.prisma.user.findFirst({
       where: { OR: [{ email: registerDto.email }, { phoneNumber: registerDto.phoneNumber }, { taxId: registerDto.taxId }] },
       select: { email: true, phoneNumber: true, taxId: true },
@@ -32,20 +41,27 @@ export class AuthService {
       );
     }
 
-    const hashedPassword: string = await bcrypt.hash(registerDto.password, 10);
+    try {
+      const hashedPassword: string = await bcrypt.hash(registerDto.password, 10);
 
-    const newUser = await this.prisma.user.create({
-      data: {
-        ...registerDto,
-        password: hashedPassword,
-        role: 'USER',
-      },
-    });
+      const newUser = await this.prisma.user.create({
+        data: {
+          ...registerDto,
+          password: hashedPassword,
+          role: 'USER',
+        },
+      });
 
-    return {
-      message: 'Your account has been successfully created and is currently under review. You will be notified once the verification process is complete.',
-      user: newUser,
-    };
+      return {
+        message: 'Your account has been successfully created and is currently under review. You will be notified once the verification process is complete.',
+        user: newUser,
+      };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientValidationError) {
+        throw new UnauthorizedException('Invalid data provided. Please check all required fields and their formats.');
+      }
+      throw error;
+    }
   }
 
   async login(loginDto: LoginDto): Promise<{ user: User; token: string }> {
