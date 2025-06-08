@@ -40,6 +40,19 @@ export class CommentsController {
     return this.commentsService.findById(commentId);
   }
 
+  @Get('allComments/postId')
+  @UseGuards(AuthGuard)
+  @ApiParam({ name: 'postId', description: 'ID of the post' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Get all comments for a post',
+    type: [Comment],
+  })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found' })
+  async getAll(@Param('postId') postId: string) {
+    return this.commentsService.getAll(postId);
+  }
+
   @Patch(':commentId')
   @UseGuards(AuthGuard)
   @ApiParam({ name: 'commentId', description: 'ID of the comment' })

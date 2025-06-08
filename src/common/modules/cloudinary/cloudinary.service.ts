@@ -30,11 +30,18 @@ export class CloudinaryService {
   }
 
   async deleteFolder(folder: string): Promise<void> {
-    await cloudinary.api.delete_resources_by_prefix(folder);
-    await cloudinary.api.delete_folder(folder);
+    try {
+      await cloudinary.api.delete_resources_by_prefix(folder);
+      await cloudinary.api.delete_folder(folder);
+    } catch (error: any) {
+      if (error.http_code === 404) {
+        return;
+      }
+      throw error;
+    }
   }
 
-  async deleteImage(publicId:string): Promise<void> {
+  async deleteImage(publicId: string): Promise<void> {
     console.log(publicId);
     await cloudinary.uploader.destroy(publicId);
   }

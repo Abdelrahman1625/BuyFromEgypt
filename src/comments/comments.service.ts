@@ -110,4 +110,29 @@ export class CommentsService {
     }
     return comment;
   }
+
+  async getAll(postId: string): Promise<Comment[]> {
+    const post = await this.prisma.post.findUnique({
+      where: { postId },
+    });
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+    const comments = await this.prisma.comment.findMany({
+      where: { postId },
+      include: {
+        user: {
+          select: {
+            userId: true,
+            name: true,
+            profileImage: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    return comments;
+  }
 }

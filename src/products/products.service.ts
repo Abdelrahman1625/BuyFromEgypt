@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -17,7 +17,7 @@ export class ProductsService {
   ) {}
 
   async findAll(): Promise<Product[]> {
-    const products = this.prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
       include: {
         owner: true,
         category: {
@@ -31,36 +31,41 @@ export class ProductsService {
 
   async createProduct(userId: string, createProductDto: CreateProductDto, files: Express.Multer.File[]): Promise<Product> {
     const user = await this.prisma.user.findFirst({ where: { userId } });
-    if (!user) throw new NotFoundException(`User with this ID not found.`);
+    if (!user) throw new NotFoundException(`User with ID ${userId} not found.`);
 
     const categoryId = createProductDto.categoryId;
-
     const category = await this.prisma.category.findFirst({ where: { categoryId } });
-    if (!category) throw new ConflictException(`Category ${categoryId} not found`);
+    if (!category) throw new NotFoundException(`Category with ID ${categoryId} not found`);
 
     const slug = slugify(createProductDto.name);
     const existedProduct = await this.prisma.product.findFirst({ where: { slug } });
     if (existedProduct) throw new ConflictException(`A product with the name "${createProductDto.name}" already exists.`);
+
     const cloudFolder = `${process.env.SITE_NAME}/products/${uuid()}`;
-    let uploadedImages;
-    if (files && files.length > 0) {
-      uploadedImages = await this.cloudinaryService.uploadImages(files, cloudFolder);
-    }
-    const newProduct = await this.prisma.product
-      .create({
-        data: {
-          ...createProductDto,
-          slug,
-          ownerId: userId,
-          cloudFolder,
-          images: {
-            create: uploadedImages?.map((img: any, index: number) => ({
-              url: img.url,
-              id: img.id,
-              isPrimary: index === 0,
-            })),
-          },
+
+    try {
+      let uploadedImages;
+      if (files && files.length > 0) {
+        uploadedImages = await this.cloudinaryService.uploadImages(files, cloudFolder);
+      }
+
+      const productData = {
+        ...createProductDto,
+        price: typeof createProductDto.price === 'string' ? parseFloat(createProductDto.price) : createProductDto.price,
+        slug,
+        ownerId: userId,
+        cloudFolder,
+        images: {
+          create: uploadedImages?.map((img: any, index: number) => ({
+            url: img.url,
+            id: img.id,
+            isPrimary: index === 0,
+          })),
         },
+      };
+
+      const newProduct = await this.prisma.product.create({
+        data: productData,
         include: {
           owner: true,
           images: true,
@@ -68,17 +73,16 @@ export class ProductsService {
             include: { user: true },
           },
         },
-      })
-      .catch(async (err) => {
-        if (cloudFolder) await this.cloudinaryService.deleteFolder(cloudFolder);
-        throw err;
       });
-    return newProduct;
+      return newProduct;
+    } catch (err: any) {
+      await this.cloudinaryService.deleteFolder(cloudFolder);
+      throw new BadRequestException(`Failed to create product: ${err.message || 'Unknown error'}`);
+    }
   }
 
   async findProductById(productId: string) {
-    const product = this.prisma.product.findUnique({
-
+    const product = await this.prisma.product.findUnique({
       where: { productId },
       include: {
         owner: true,
@@ -88,9 +92,11 @@ export class ProductsService {
         },
       },
     });
+
     if (!product) {
       throw new NotFoundException(`Product with ID ${productId} not found.`);
     }
+
     return product;
   }
 
@@ -102,11 +108,13 @@ export class ProductsService {
 
     if (!product) throw new NotFoundException(`Product with ID ${productId} not found!`);
 
-    const category = await this.prisma.category.findUnique({
-      where: { categoryId: updateProductDto.categoryId },
-    });
-    if (!category) {
-      throw new NotFoundException(`Category with ID ${updateProductDto.categoryId} not found`);
+    if (updateProductDto.categoryId) {
+      const category = await this.prisma.category.findUnique({
+        where: { categoryId: updateProductDto.categoryId },
+      });
+      if (!category) {
+        throw new NotFoundException(`Category with ID ${updateProductDto.categoryId} not found`);
+      }
     }
 
     if (product.ownerId !== userId) throw new ForbiddenException(`You don't have permission to update this product!`);
@@ -120,8 +128,7 @@ export class ProductsService {
 
     if (updateProductDto.imagesToDelete?.length) {
       const imagesToDelete = product.images.filter((img) => updateProductDto.imagesToDelete?.includes(img.id));
-
-      await Promise.all(imagesToDelete.map((img) => this.cloudinaryService.deleteImage(img.id).catch((e) => console.error(`Failed to delete image ${img.id}:`, e))));
+      await Promise.all(imagesToDelete.map((img) => this.cloudinaryService.deleteImage(img.id)));
 
       await this.prisma.productImage.deleteMany({
         where: {
@@ -135,6 +142,7 @@ export class ProductsService {
     if (files && files.length > 0 && product.cloudFolder) {
       uploadedImages = await this.cloudinaryService.uploadImages(files, product.cloudFolder);
     }
+
     const { imagesToDelete, ...updateData } = updateProductDto;
     const updatedProduct = await this.prisma.product.update({
       where: { productId },
@@ -183,7 +191,6 @@ export class ProductsService {
     });
 
     const action = state === 'approve' ? 'approved' : 'deactivated';
-
     return { message: `Product with ID ${productId} has been ${action} successfully.` };
   }
 
@@ -195,7 +202,9 @@ export class ProductsService {
 
     if (!product) throw new NotFoundException(`Product with ID ${productId} not found!`);
 
-    if (product.ownerId !== userId || role != RoleEnum.ADMIN) throw new ForbiddenException(`You don't have permission to update this product!`);
+    if (product.ownerId !== userId && role !== RoleEnum.ADMIN) {
+      throw new ForbiddenException(`You don't have permission to delete this product!`);
+    }
 
     await this.prisma.product.delete({ where: { productId } });
     return {
