@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Delete, Patch, HttpStatus, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Delete, Patch, HttpStatus, Req, UseGuards, NotFoundException } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
@@ -40,7 +40,7 @@ export class CommentsController {
     return this.commentsService.findById(commentId);
   }
 
-  @Get('allComments/postId')
+  @Get('allComments/:postId')
   @UseGuards(AuthGuard)
   @ApiParam({ name: 'postId', description: 'ID of the post' })
   @ApiResponse({
@@ -65,6 +65,7 @@ export class CommentsController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Comment not found' })
   @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Not your comment' })
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid input' })
   async update(
     @Req()
     req: Request & {
@@ -73,6 +74,9 @@ export class CommentsController {
     @Param('commentId') commentId: string,
     @Body() updateCommentDto: UpdateCommentDto
   ) {
+    if (!updateCommentDto || !updateCommentDto.content) {
+      throw new NotFoundException('Comment content is required');
+    }
     return this.commentsService.update(commentId, req.user.userId, updateCommentDto);
   }
 

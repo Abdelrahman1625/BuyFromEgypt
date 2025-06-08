@@ -15,48 +15,71 @@ export class PostsService {
   ) {}
 
   async create(userId: string, createPostDto: CreatePostDto, files: Express.Multer.File[]): Promise<PostTs> {
-    const cloudFolder = `${process.env.SITE_NAME}/posts/${uuid()}`;
-    let uploadedImages;
+    try {
+      const cloudFolder = `${process.env.SITE_NAME}/posts/${uuid()}`;
+      let uploadedImages;
 
-    if (files && files.length > 0) {
-      uploadedImages = await this.cloudinaryService.uploadImages(files, cloudFolder);
-    }
+      if (files && files.length > 0) {
+        uploadedImages = await this.cloudinaryService.uploadImages(files, cloudFolder);
+      }
 
-    if (createPostDto.products) {
-      for (const productId of createPostDto.products) {
-        const product = await this.prisma.product.findUnique({
-          where: { productId },
+      const productIds = Array.isArray(createPostDto.products) ? createPostDto.products : createPostDto.products ? [createPostDto.products] : [];
+
+      if (productIds.length > 0) {
+        const products = await this.prisma.product.findMany({
+          where: {
+            productId: {
+              in: productIds,
+            },
+          },
+          select: {
+            productId: true,
+          },
         });
 
-        if (!product) {
-          throw new NotFoundException(`Product with ID ${productId} not found`);
+        if (products.length !== productIds.length) {
+          const foundIds = products.map((p) => p.productId);
+          const missingIds = productIds.filter((id) => !foundIds.includes(id));
+          throw new NotFoundException(`Products with IDs ${missingIds.join(', ')} not found`);
         }
       }
-    }
 
-    const newPost = await this.prisma.post.create({
-      data: {
+      const postData = {
         ...createPostDto,
         userId,
         cloudFolder,
-        images: {
-          create: uploadedImages?.map((img: any, index: number) => ({
-            url: img.url,
-            id: img.id,
-          })),
-        },
-        products: {
-          connect: createPostDto.products?.map((productId) => ({ productId })),
-        },
-      },
-      include: {
-        user: true,
-        images: true,
-        products: true,
-      },
-    });
+        images: uploadedImages
+          ? {
+              create: uploadedImages.map((img: any) => ({
+                url: img.url,
+                id: img.id,
+              })),
+            }
+          : undefined,
+        products:
+          productIds.length > 0
+            ? {
+                connect: productIds.map((productId) => ({ productId })),
+              }
+            : undefined,
+      };
 
-    return newPost;
+      const newPost = await this.prisma.post.create({
+        data: postData,
+        include: {
+          user: true,
+          images: true,
+          products: true,
+        },
+      });
+
+      return newPost;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new Error(`Failed to create post: ${error.message}`);
+    }
   }
 
   async findAll() {

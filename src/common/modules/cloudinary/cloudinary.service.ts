@@ -96,7 +96,7 @@ export class CloudinaryService implements OnModuleInit {
           console.log('Folder already deleted or does not exist:', folder);
           return;
         }
-        throw folderError;  
+        throw folderError;
       }
     } catch (error: any) {
       console.error('Error in deleteFolder:', error);

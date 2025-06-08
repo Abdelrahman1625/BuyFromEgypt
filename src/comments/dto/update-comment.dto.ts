@@ -1,4 +1,11 @@
-import { PartialType, PickType } from '@nestjs/swagger';
-import { CreateCommentDto } from './create-comment.dto';
+import { IsString, IsNotEmpty } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
-export class UpdateCommentDto extends PartialType(PickType(CreateCommentDto, ['content'] as const)) {}
+export class UpdateCommentDto {
+  @ApiProperty({
+    example: 'Updated comment content',
+  })
+  @IsNotEmpty({ message: 'Content is required' })
+  @IsString({ message: 'Content must be a string' })
+  content: string;
+}

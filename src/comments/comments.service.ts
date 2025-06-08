@@ -41,6 +41,10 @@ export class CommentsService {
   }
 
   async update(commentId: string, userId: string, updateCommentDto: UpdateCommentDto): Promise<Comment> {
+    if (!updateCommentDto || !updateCommentDto.content) {
+      throw new NotFoundException('Comment content is required');
+    }
+
     const comment = await this.prisma.comment.findUnique({
       where: { commentId },
     });
@@ -53,23 +57,27 @@ export class CommentsService {
       throw new NotFoundException('You can only edit your own comments');
     }
 
-    const updatedComment = await this.prisma.comment.update({
-      where: { commentId },
-      data: {
-        content: updateCommentDto.content,
-      },
-      include: {
-        user: {
-          select: {
-            userId: true,
-            name: true,
-            profileImage: true,
+    try {
+      const updatedComment = await this.prisma.comment.update({
+        where: { commentId },
+        data: {
+          content: updateCommentDto.content,
+        },
+        include: {
+          user: {
+            select: {
+              userId: true,
+              name: true,
+              profileImage: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    return updatedComment;
+      return updatedComment;
+    } catch (error) {
+      throw new NotFoundException('Failed to update comment');
+    }
   }
 
   async delete(commentId: string, userId: string, role: string): Promise<{ message: string }> {
