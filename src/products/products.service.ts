@@ -194,21 +194,82 @@ export class ProductsService {
     return { message: `Product with ID ${productId} has been ${action} successfully.` };
   }
 
-  async deleteProduct(productId: string, userId: string, role: string): Promise<{ message: string }> {
-    const product = await this.prisma.product.findUnique({
-      where: { productId },
-      include: { images: true, owner: true },
-    });
+  async deleteProduct(productId: string, userId: string, role: string): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      const product = await this.prisma.product.findUnique({
+        where: { productId },
+        include: { images: true, owner: true },
+      });
 
-    if (!product) throw new NotFoundException(`Product with ID ${productId} not found!`);
+      if (!product) {
+        throw new NotFoundException({
+          success: false,
+          message: `Product with ID ${productId} not found!`,
+          error: 'Not Found',
+        });
+      }
 
-    if (product.ownerId !== userId && role !== RoleEnum.ADMIN) {
-      throw new ForbiddenException(`You don't have permission to delete this product!`);
+      if (product.ownerId !== userId && role !== RoleEnum.ADMIN) {
+        throw new ForbiddenException({
+          success: false,
+          message: "You don't have permission to delete this product!",
+          error: 'Forbidden',
+        });
+      }
+
+      // Use transaction to ensure all operations succeed or fail together
+      return await this.prisma.$transaction(async (prisma) => {
+        try {
+          // Delete product images from Cloudinary if they exist
+          if (product.images && product.images.length > 0) {
+            try {
+              await Promise.all(product.images.map((image) => this.cloudinaryService.deleteImage(image.id)));
+            } catch (error) {
+              console.error('Error deleting images from Cloudinary:', error);
+              // Continue with deletion even if image deletion fails
+              console.log('Continuing with product deletion despite image deletion error');
+            }
+          }
+
+          // Delete the product folder from Cloudinary if it exists
+          if (product.cloudFolder) {
+            try {
+              await this.cloudinaryService.deleteFolder(product.cloudFolder);
+            } catch (error) {
+              console.error('Error deleting folder from Cloudinary:', error);
+              // Continue with deletion even if folder deletion fails
+              console.log('Continuing with product deletion despite folder deletion error');
+            }
+          }
+
+          // Delete the product from database
+          await prisma.product.delete({ where: { productId } });
+
+          return {
+            success: true,
+            message: `Product with ID ${productId} has been deleted successfully.`,
+            data: {
+              productId,
+              deletedAt: new Date().toISOString(),
+            },
+          };
+        } catch (error) {
+          console.error('Error in transaction:', error);
+          throw error;
+        }
+      });
+    } catch (error) {
+      console.error('Error in deleteProduct:', error);
+
+      if (error instanceof NotFoundException || error instanceof ForbiddenException || error instanceof BadRequestException) {
+        throw error;
+      }
+
+      throw new BadRequestException({
+        success: false,
+        message: 'Failed to delete product',
+        error: error.message || 'Unknown error occurred during product deletion',
+      });
     }
-
-    await this.prisma.product.delete({ where: { productId } });
-    return {
-      message: `Product with ID ${productId} has been deleted successfully.`,
-    };
   }
 }

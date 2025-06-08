@@ -1,4 +1,21 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, Req, UseGuards, UseInterceptors, UploadedFile, UploadedFiles, HttpStatus, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Put,
+  Param,
+  Delete,
+  Req,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  UploadedFiles,
+  HttpStatus,
+  BadRequestException,
+  HttpCode,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Request } from 'express';
@@ -11,7 +28,7 @@ import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RoleEnum } from '@prisma/client';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { ApiResponse } from '@nestjs/swagger';
+import { ApiResponse, ApiOperation, ApiParam } from '@nestjs/swagger';
 
 @Controller('products')
 export class ProductsController {
@@ -55,20 +72,6 @@ export class ProductsController {
     return this.productsService.updateProduct(id, req.user.userId, updateProductDto, files);
   }
 
-  // @Put('admin/approveProduct/:id')
-  // @Roles(RoleEnum.ADMIN)
-  // @UseGuards(AuthGuard, RolesGuard)
-  // async approveUser(@Req() req: Request & { user: { userId: string } }, @Param('id') productId: string): Promise<{ message: string }> {
-  //   return this.productsService.toggleProductState(productId, req.user.userId, 'approve');
-  // }
-  //
-  // @Put('admin/deactivateProduct/:id')
-  // @Roles(RoleEnum.ADMIN)
-  // @UseGuards(AuthGuard, RolesGuard)
-  // async deactivateUser(@Req() req: Request & { user: { userId: string } }, @Param('id') productId: string): Promise<{ message: string }> {
-  //   return this.productsService.toggleProductState(productId, req.user.userId, 'deactivate');
-  // }
-
   @Put('admin/:id/:action')
   @Roles(RoleEnum.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
@@ -84,7 +87,99 @@ export class ProductsController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(RoleEnum.ADMIN, RoleEnum.USER)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a product' })
+  @ApiParam({ name: 'id', description: 'Product ID' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Product has been successfully deleted',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        data: {
+          type: 'object',
+          properties: {
+            productId: { type: 'string' },
+            deletedAt: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Product not found',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        error: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'User does not have permission to delete this product',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        error: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'User is not authenticated',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        error: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Failed to delete product',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        error: { type: 'string' },
+      },
+    },
+  })
   async remove(@Req() req: Request & { user: { userId: string; role: string } }, @Param('id') id: string) {
-    return await this.productsService.deleteProduct(id, req.user.userId, req.user.role);
+    try {
+      if (!req.user || !req.user.userId) {
+        throw new UnauthorizedException({
+          success: false,
+          message: 'User is not authenticated',
+          error: 'Unauthorized',
+        });
+      }
+
+      if (!id) {
+        throw new BadRequestException({
+          success: false,
+          message: 'Product ID is required',
+          error: 'Bad Request',
+        });
+      }
+
+      return await this.productsService.deleteProduct(id, req.user.userId, req.user.role);
+    } catch (error) {
+      console.error('Error in remove endpoint:', error);
+      throw error;
+    }
   }
 }
