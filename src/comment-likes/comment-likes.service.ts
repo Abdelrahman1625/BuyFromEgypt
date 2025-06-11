@@ -5,7 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class CommentLikesService {
   constructor(private prisma: PrismaService) {}
 
-  async likeComment(userId: string, commentId: string) {
+  private async validateComment(commentId: string) {
     const comment = await this.prisma.comment.findUnique({
       where: { commentId },
     });
@@ -13,8 +13,11 @@ export class CommentLikesService {
     if (!comment) {
       throw new NotFoundException('Comment not found');
     }
+    return comment;
+  }
 
-    const existingReaction = await this.prisma.commentLike.findUnique({
+  private async getExistingReaction(userId: string, commentId: string) {
+    return this.prisma.commentLike.findUnique({
       where: {
         userId_commentId: {
           userId,
@@ -22,6 +25,19 @@ export class CommentLikesService {
         },
       },
     });
+  }
+
+  private getUserSelect() {
+    return {
+      userId: true,
+      name: true,
+      profileImage: true,
+    };
+  }
+
+  async likeComment(userId: string, commentId: string) {
+    await this.validateComment(commentId);
+    const existingReaction = await this.getExistingReaction(userId, commentId);
 
     if (existingReaction) {
       if (existingReaction.isDislike) {
@@ -35,37 +51,27 @@ export class CommentLikesService {
           data: {
             isDislike: false,
           },
-          include: {
+          select: {
             user: {
-              select: {
-                userId: true,
-                name: true,
-                profileImage: true,
-              },
+              select: this.getUserSelect(),
             },
             comment: true,
           },
         });
       } else {
-        // If it was already a like, remove it
-        return this.removeLike(userId, commentId);
+        return this.removeReaction(userId, commentId);
       }
     }
 
-    // Create new like
     return this.prisma.commentLike.create({
       data: {
         userId,
         commentId,
         isDislike: false,
       },
-      include: {
+      select: {
         user: {
-          select: {
-            userId: true,
-            name: true,
-            profileImage: true,
-          },
+          select: this.getUserSelect(),
         },
         comment: true,
       },
@@ -73,26 +79,11 @@ export class CommentLikesService {
   }
 
   async dislikeComment(userId: string, commentId: string) {
-    const comment = await this.prisma.comment.findUnique({
-      where: { commentId },
-    });
-
-    if (!comment) {
-      throw new NotFoundException('Comment not found');
-    }
-
-    const existingReaction = await this.prisma.commentLike.findUnique({
-      where: {
-        userId_commentId: {
-          userId,
-          commentId,
-        },
-      },
-    });
+    await this.validateComment(commentId);
+    const existingReaction = await this.getExistingReaction(userId, commentId);
 
     if (existingReaction) {
       if (!existingReaction.isDislike) {
-        // If it was a like, change it to a dislike
         return this.prisma.commentLike.update({
           where: {
             userId_commentId: {
@@ -103,55 +94,34 @@ export class CommentLikesService {
           data: {
             isDislike: true,
           },
-          include: {
+          select: {
             user: {
-              select: {
-                userId: true,
-                name: true,
-                profileImage: true,
-              },
+              select: this.getUserSelect(),
             },
             comment: true,
           },
         });
       } else {
-        // If it was already a dislike, remove it
-        return this.removeDislike(userId, commentId);
+        return this.removeReaction(userId, commentId);
       }
     }
 
-    // Create new dislike
     return this.prisma.commentLike.create({
       data: {
         userId,
         commentId,
         isDislike: true,
       },
-      include: {
+      select: {
         user: {
-          select: {
-            userId: true,
-            name: true,
-            profileImage: true,
-          },
+          select: this.getUserSelect(),
         },
         comment: true,
       },
     });
   }
 
-  async removeLike(userId: string, commentId: string) {
-    return this.prisma.commentLike.delete({
-      where: {
-        userId_commentId: {
-          userId,
-          commentId,
-        },
-      },
-    });
-  }
-
-  async removeDislike(userId: string, commentId: string) {
+  async removeReaction(userId: string, commentId: string) {
     return this.prisma.commentLike.delete({
       where: {
         userId_commentId: {
@@ -163,37 +133,19 @@ export class CommentLikesService {
   }
 
   async getCommentReactions(commentId: string) {
-    const comment = await this.prisma.comment.findUnique({
-      where: { commentId },
-    });
-
-    if (!comment) {
-      throw new NotFoundException('Comment not found');
-    }
-
+    await this.validateComment(commentId);
     return this.prisma.commentLike.findMany({
       where: { commentId },
-      include: {
+      select: {
         user: {
-          select: {
-            userId: true,
-            name: true,
-            profileImage: true,
-          },
+          select: this.getUserSelect(),
         },
       },
     });
   }
 
   async getCommentLikesCount(commentId: string) {
-    const comment = await this.prisma.comment.findUnique({
-      where: { commentId },
-    });
-
-    if (!comment) {
-      throw new NotFoundException('Comment not found');
-    }
-
+    await this.validateComment(commentId);
     return this.prisma.commentLike.count({
       where: {
         commentId,
@@ -203,14 +155,7 @@ export class CommentLikesService {
   }
 
   async getCommentDislikesCount(commentId: string) {
-    const comment = await this.prisma.comment.findUnique({
-      where: { commentId },
-    });
-
-    if (!comment) {
-      throw new NotFoundException('Comment not found');
-    }
-
+    await this.validateComment(commentId);
     return this.prisma.commentLike.count({
       where: {
         commentId,

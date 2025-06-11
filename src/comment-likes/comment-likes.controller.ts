@@ -24,14 +24,9 @@ export class CommentLikesController {
     return this.commentLikesService.dislikeComment(req.user.userId, commentId);
   }
 
-  @Delete(':commentId/like')
-  async removeLike(@Req() req: AuthenticatedRequest, @Param('commentId') commentId: string) {
-    return this.commentLikesService.removeLike(req.user.userId, commentId);
-  }
-
-  @Delete(':commentId/dislike')
-  async removeDislike(@Req() req: AuthenticatedRequest, @Param('commentId') commentId: string) {
-    return this.commentLikesService.removeDislike(req.user.userId, commentId);
+  @Delete(':commentId/reaction')
+  async removeReaction(@Req() req: AuthenticatedRequest, @Param('commentId') commentId: string) {
+    return this.commentLikesService.removeReaction(req.user.userId, commentId);
   }
 
   @Get(':commentId/reactions')
