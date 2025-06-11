@@ -19,10 +19,8 @@ export class ProductsService {
   async findAll(): Promise<Product[]> {
     const products = await this.prisma.product.findMany({
       include: {
-        owner: true,
-        category: {
-          include: { user: true },
-        },
+        owner: { select: { userId: true, name: true, email: true, role: true } },
+        category: { select: { categoryId: true, name: true, description: true } },
         images: true,
       },
     });
@@ -85,11 +83,9 @@ export class ProductsService {
     const product = await this.prisma.product.findUnique({
       where: { productId },
       include: {
-        owner: true,
+        owner: { select: { userId: true, name: true, email: true, role: true } },
         images: true,
-        category: {
-          include: { user: true },
-        },
+        category: { select: { categoryId: true, name: true, description: true } },
       },
     });
 

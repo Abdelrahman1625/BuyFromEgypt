@@ -84,7 +84,7 @@ export class PostsService {
 
   async findAll() {
     const posts = await this.prisma.post.findMany({
-      include: { comments: true, likes: true, user: true, images: true, products: true },
+      include: {},
     });
     return posts;
   }
@@ -92,7 +92,7 @@ export class PostsService {
   async findOne(postId: string) {
     const post = await this.prisma.post.findUnique({
       where: { postId },
-      include: { comments: true, likes: true },
+      include: {},
     });
 
     if (!post) {

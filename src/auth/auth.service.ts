@@ -64,15 +64,28 @@ export class AuthService {
     }
   }
 
-  async login(loginDto: LoginDto): Promise<{ user: User; token: string }> {
+  async login(
+    loginDto: LoginDto
+  ): Promise<{ user: { userId: string; name: string; email: string; role: string; profileImage: string | null; type: string; active: boolean; emailVerified: boolean }; token: string }> {
     const user = await this.prisma.user.findFirst({
       where: { email: loginDto.email },
-      include: { followers: true, following: true },
+      select: {
+        userId: true,
+        name: true,
+        email: true,
+        role: true,
+        profileImage: true,
+        active: true,
+        type: true,
+        emailVerified: true,
+        password: true,
+      },
     });
 
     if (!user) {
       throw new UnauthorizedException('The email address is not registered. Please sign up first.');
     }
+
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('The Email Or Password you entered is incorrect. Please try again.');
@@ -82,11 +95,11 @@ export class AuthService {
       throw new ForbiddenException("Account under review. You'll be notified upon verification.");
     }
 
+    const { userId, name, email, role, profileImage, type, active, emailVerified } = user;
     const payload = { userId: user.userId, email: user.email, active: user.active, role: user.role, type: user.type };
-
     const token = await this.jwtService.signAsync(payload);
 
-    return { user, token };
+    return { user: { userId, name, email, role, profileImage, type, active, emailVerified }, token };
   }
 
   async requestReset(requestResetDto: RequestResetDto): Promise<{ message: string }> {

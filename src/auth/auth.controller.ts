@@ -28,7 +28,7 @@ export class AuthController {
   @Post('login')
   @ApiResponse({ status: HttpStatus.OK, description: 'User successfully logged in' })
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Invalid data' })
-  async login(@Body() loginDto: LoginDto): Promise<{ user: User; token: string }> {
+  async login(@Body() loginDto: LoginDto): Promise<{ user: { userId: string; name: string; email: string; role: string; profileImage: string | null }; token: string }> {
     return this.authService.login(loginDto);
   }
 
