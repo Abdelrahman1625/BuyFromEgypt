@@ -155,4 +155,80 @@ export class PostsService {
       message: `Post with ID ${postId} has been deleted successfully.`,
     };
   }
+
+  async savePost(postId: string, userId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { postId },
+    });
+
+    if (!post) {
+      throw new NotFoundException(`Post with ID ${postId} not found`);
+    }
+
+    const savedPost = await this.prisma.savedPost.create({
+      data: {
+        userId,
+        postId,
+      },
+      include: {
+        post: {
+          include: {
+            user: true,
+            images: true,
+            products: true,
+          },
+        },
+      },
+    });
+
+    return savedPost;
+  }
+
+  async unsavePost(postId: string, userId: string) {
+    const savedPost = await this.prisma.savedPost.findUnique({
+      where: {
+        userId_postId: {
+          userId,
+          postId,
+        },
+      },
+    });
+
+    if (!savedPost) {
+      throw new NotFoundException('Post is not saved');
+    }
+
+    await this.prisma.savedPost.delete({
+      where: {
+        userId_postId: {
+          userId,
+          postId,
+        },
+      },
+    });
+
+    return { message: 'Post unsaved successfully' };
+  }
+
+  async getSavedPosts(userId: string) {
+    const savedPosts = await this.prisma.savedPost.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        post: {
+          include: {
+            user: true,
+            images: true,
+            products: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return savedPosts.map((savedPost) => savedPost.post);
+  }
 }

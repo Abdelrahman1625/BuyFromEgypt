@@ -47,6 +47,7 @@ model User {
   likedComments      CommentLike[]    @relation("UserLikes")
   otps               Otp[]
   conversationParticipants    ConversationParticipant[]
+  savedPosts         SavedPost[]      @relation("UserSavedPosts")
 
   @@index([createdAt])
   @@index([role, active])
@@ -85,6 +86,7 @@ model Post {
   comments    Comment[]
   products    Product[]   @relation("PostProducts")
   images      PostImage[] @relation("PostImages")
+  savedBy     SavedPost[] @relation("SavedPosts")
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -269,6 +271,19 @@ model Category {
 
   @@index([userId])
   @@index([name])
+}
+
+model SavedPost {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation("UserSavedPosts", fields: [userId], references: [userId])
+  post      Post     @relation("SavedPosts", fields: [postId], references: [postId])
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
 }
 
 enum RoleEnum {
