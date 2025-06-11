@@ -139,9 +139,15 @@ export class PostsService {
     }
 
     await this.prisma.$transaction([
+      this.prisma.commentLike.deleteMany({
+        where: {
+          comment: {
+            postId,
+          },
+        },
+      }),
       this.prisma.comment.deleteMany({ where: { postId } }),
       this.prisma.postImage.deleteMany({ where: { postId } }),
-      this.prisma.postLike.deleteMany({ where: { postId } }),
       this.prisma.post.delete({ where: { postId } }),
     ]);
 

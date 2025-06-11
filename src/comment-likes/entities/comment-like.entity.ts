@@ -1,4 +1,4 @@
-export class PostLike {
+export class CommentLike {
   id: number;
   postId: number;
   userId: number;

@@ -44,7 +44,7 @@ model User {
   categories         Category[]       @relation("UserCategories")
   followers          Follower[]       @relation("FollowedUsers")
   following          Follower[]       @relation("FollowingUsers")
-  likedPosts         PostLike[]       @relation("UserLikes")
+  likedComments      CommentLike[]    @relation("UserLikes")
   otps               Otp[]
   conversationParticipants    ConversationParticipant[]
 
@@ -83,26 +83,11 @@ model Post {
   userId      String
   user        User        @relation("UserPosts", fields: [userId], references: [userId])
   comments    Comment[]
-  likes       PostLike[]
   products    Product[]   @relation("PostProducts")
   images      PostImage[] @relation("PostImages")
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  @@index([userId])
-}
-
-model PostLike {
-  id        String   @id @default(uuid())
-  postId    String
-  userId    String
-  createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [postId])
-  user User @relation("UserLikes", fields: [userId], references: [userId])
-
-  @@unique([userId, postId])
-  @@index([postId])
   @@index([userId])
 }
 
@@ -112,12 +97,25 @@ model Comment {
   userId    String
   content   String
   createdAt DateTime @default(now())
+  likes     CommentLike[]
 
   post Post @relation(fields: [postId], references: [postId])
   user User @relation("UserComments", fields: [userId], references: [userId])
 
   @@index([postId])
   @@index([userId])
+}
+
+model CommentLike {
+  id        String   @id @default(uuid())
+  userId    String
+  commentId String
+  isDislike Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation("UserLikes", fields: [userId], references: [userId])
+  comment   Comment  @relation(fields: [commentId], references: [commentId])
+
+  @@unique([userId, commentId])
 }
 
 model Certification {

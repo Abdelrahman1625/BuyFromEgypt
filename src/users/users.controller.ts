@@ -9,13 +9,13 @@ import { Request } from 'express';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UpdateUserForAdminDto } from './dto/update-user.dto';
-import { PostLikesService } from 'src/post-likes/post-likes.service';
+import { CommentLikesService } from 'src/comment-likes/comment-likes.service';
 
 @Controller('users')
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
-    private postLikesService: PostLikesService
+    private commentLikesService: CommentLikesService
   ) {}
   @Get('admin')
   @Roles(`${RoleEnum.ADMIN}`)
@@ -39,7 +39,6 @@ export class UsersController {
   async getUserById(@Param('id') userId: string) {
     return this.usersService.getUser(userId);
   }
-
 
   @ApiBody({ type: CreateUserDto })
   @Roles(`${RoleEnum.ADMIN}`)
