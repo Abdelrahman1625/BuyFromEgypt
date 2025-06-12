@@ -68,11 +68,9 @@ export class ProductsService {
       const newProduct = await this.prisma.product.create({
         data: productData,
         include: {
-          owner: true,
+          owner: { select: { userId: true, name: true, email: true, role: true } },
+          category: { select: { categoryId: true, name: true, description: true } },
           images: true,
-          category: {
-            include: { user: true },
-          },
         },
       });
       return newProduct;
@@ -216,32 +214,25 @@ export class ProductsService {
         });
       }
 
-      // Use transaction to ensure all operations succeed or fail together
       return await this.prisma.$transaction(async (prisma) => {
         try {
-          // Delete product images from Cloudinary if they exist
           if (product.images && product.images.length > 0) {
             try {
               await Promise.all(product.images.map((image) => this.cloudinaryService.deleteImage(image.id)));
             } catch (error) {
               console.error('Error deleting images from Cloudinary:', error);
-              // Continue with deletion even if image deletion fails
               console.log('Continuing with product deletion despite image deletion error');
             }
           }
-
-          // Delete the product folder from Cloudinary if it exists
           if (product.cloudFolder) {
             try {
               await this.cloudinaryService.deleteFolder(product.cloudFolder);
             } catch (error) {
               console.error('Error deleting folder from Cloudinary:', error);
-              // Continue with deletion even if folder deletion fails
               console.log('Continuing with product deletion despite folder deletion error');
             }
           }
 
-          // Delete the product from database
           await prisma.product.delete({ where: { productId } });
 
           return {
