@@ -8,46 +8,46 @@ datasource db {
 }
 
 model User {
-  userId             String          @id @default(uuid())
-  name               String
-  email              String          @unique
-  password           String
-  phoneNumber        String          @unique
-  nationalId         String          @unique
-  country            String
-  taxId              String          @unique
-  age                Int
-  role               RoleEnum        @default(USER)
-  type               TypeEnum
-  active             Boolean         @default(false)
-  profileImage       String?
-  registrationNumber String?
-  industrial         String?
-  industrySector     String?
-  commercial         String?
-  address            String?          @db.Text
-  otpCode            String?
-  otpMethod          String?
-  otpExpiry          DateTime?
-  emailVerified      Boolean          @default(false)
-  isOnline           Boolean          @default(false)
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  posts              Post[]           @relation("UserPosts")
-  comments           Comment[]        @relation("UserComments")
-  certifications     Certification[]  @relation("UserCertifications")
-  orders             Order[]          @relation("UserOrders")
-  products           Product[]        @relation("UserProducts")
-  approvedProducts   Product[]        @relation("ApprovedProducts")
-  messagesSent       Message[]        @relation("SentMessages")
-  messagesReceived   Message[]        @relation("ReceivedMessages")
-  categories         Category[]       @relation("UserCategories")
-  followers          Follower[]       @relation("FollowedUsers")
-  following          Follower[]       @relation("FollowingUsers")
-  likedComments      CommentLike[]    @relation("UserLikes")
-  otps               Otp[]
-  conversationParticipants    ConversationParticipant[]
-  savedPosts         SavedPost[]      @relation("UserSavedPosts")
+  userId                   String                    @id @default(uuid())
+  name                     String
+  email                    String                    @unique
+  password                 String
+  phoneNumber              String                    @unique
+  nationalId               String                    @unique
+  country                  String
+  taxId                    String                    @unique
+  age                      Int
+  role                     RoleEnum                  @default(USER)
+  type                     TypeEnum
+  active                   Boolean                   @default(false)
+  profileImage             String?
+  registrationNumber       String?
+  industrial               String?
+  industrySector           String?
+  commercial               String?
+  address                  String?                   @db.Text
+  otpCode                  String?
+  otpMethod                String?
+  otpExpiry                DateTime?
+  emailVerified            Boolean                   @default(false)
+  isOnline                 Boolean                   @default(false)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  posts                    Post[]                    @relation("UserPosts")
+  comments                 Comment[]                 @relation("UserComments")
+  certifications           Certification[]           @relation("UserCertifications")
+  orders                   Order[]                   @relation("UserOrders")
+  products                 Product[]                 @relation("UserProducts")
+  approvedProducts         Product[]                 @relation("ApprovedProducts")
+  messagesSent             Message[]                 @relation("SentMessages")
+  messagesReceived         Message[]                 @relation("ReceivedMessages")
+  categories               Category[]                @relation("UserCategories")
+  followers                Follower[]                @relation("FollowedUsers")
+  following                Follower[]                @relation("FollowingUsers")
+  likedComments            CommentLike[]             @relation("UserLikes")
+  otps                     Otp[]
+  conversationParticipants ConversationParticipant[]
+  savedPosts               SavedPost[]               @relation("UserSavedPosts")
 
   @@index([createdAt])
   @@index([role, active])
@@ -94,11 +94,11 @@ model Post {
 }
 
 model Comment {
-  commentId String   @id @default(uuid())
+  commentId String        @id @default(uuid())
   postId    String
   userId    String
   content   String
-  createdAt DateTime @default(now())
+  createdAt DateTime      @default(now())
   likes     CommentLike[]
 
   post Post @relation(fields: [postId], references: [postId])
@@ -213,13 +213,14 @@ model PostImage {
 }
 
 model Conversation {
-  id            String      @id @default(uuid())
-  name          String?
-  type          ConversationType
-  participants  ConversationParticipant[]
-  messages      Message[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id           String                    @id @default(uuid())
+  name         String?
+  type         ConversationType
+  participants ConversationParticipant[]
+  messages     Message[]
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
   @@index([createdAt])
 }
 
@@ -230,28 +231,41 @@ model ConversationParticipant {
   user           User         @relation(fields: [userId], references: [userId])
   userId         String
   joinedAt       DateTime     @default(now())
+
   @@unique([conversationId, userId])
   @@index([userId])
 }
 
 model Message {
-  messageId       String        @id @default(uuid())
-  conversation    Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  conversationId  String
-  sender          User          @relation("SentMessages", fields: [senderId], references: [userId])
-  senderId        String
-  receiver        User          @relation("ReceivedMessages", fields: [receiverId], references: [userId])
-  receiverId      String
-  content         String        @db.Text
-  messageType     MessageType
-  createdAt       DateTime      @default(now())
-  seen            Boolean       @default(false)
-  delivered       Boolean       @default(false)
+  messageId      String       @id @default(uuid())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [userId])
+  senderId       String
+  receiver       User         @relation("ReceivedMessages", fields: [receiverId], references: [userId])
+  receiverId     String
+  content        String       @db.Text
+  messageType    MessageType
+  createdAt      DateTime     @default(now())
+  seen           Boolean      @default(false)
+  delivered      Boolean      @default(false)
 
   @@index([conversationId])
   @@index([senderId])
   @@index([receiverId])
   @@index([createdAt])
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  type        String
+  message     String
+  recipientId String
+  senderId    String
+  postId      String?
+  commentId   String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
 }
 
 enum ConversationType {
