@@ -85,6 +85,9 @@ export class PostsService {
   async findAll() {
     const posts = await this.prisma.post.findMany({
       include: {},
+      orderBy: {
+        createdAt: 'asc',
+      },
     });
     return posts;
   }
@@ -173,9 +176,27 @@ export class PostsService {
       include: {
         post: {
           include: {
-            user: true,
+            user: {
+              select: {
+                userId: true,
+                name: true,
+                email: true,
+                role: true,
+                isOnline: true,
+              },
+            },
             images: true,
-            products: true,
+            products: {
+              select:{
+                productId: true,
+                name: true,
+                description: true,
+                active: true,
+                rating: true,
+                categoryId: true,
+                approvedById: true,
+              }
+            },
           },
         },
       },
@@ -218,14 +239,32 @@ export class PostsService {
       include: {
         post: {
           include: {
-            user: true,
+            user: {
+              select: {
+                userId: true,
+                name: true,
+                email: true,
+                role: true,
+                isOnline: true,
+              },
+            },
             images: true,
-            products: true,
+            products: {
+              select: {
+                productId: true,
+                name: true,
+                description: true,
+                active: true,
+                rating: true,
+                categoryId: true,
+                approvedById: true,
+              },
+            },
           },
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'asc',
       },
     });
 

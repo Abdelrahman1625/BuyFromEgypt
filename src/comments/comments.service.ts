@@ -138,7 +138,7 @@ export class CommentsService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'asc',
       },
     });
     return comments;

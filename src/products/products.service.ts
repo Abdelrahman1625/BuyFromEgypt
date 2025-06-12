@@ -23,6 +23,9 @@ export class ProductsService {
         category: { select: { categoryId: true, name: true, description: true } },
         images: true,
       },
+      orderBy: {
+        createdAt: 'asc',
+      },
     });
     return products;
   }

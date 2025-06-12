@@ -30,6 +30,9 @@ export class CategoriesService {
   async findAll(): Promise<Category[]> {
     return this.prisma.category.findMany({
       include: { user: true },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
   }
 
