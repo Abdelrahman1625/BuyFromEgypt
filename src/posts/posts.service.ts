@@ -67,7 +67,15 @@ export class PostsService {
       const newPost = await this.prisma.post.create({
         data: postData,
         include: {
-          user: true,
+          user: {
+            select: {
+              userId: true,
+              name: true,
+              email: true,
+              role: true,
+              isOnline: true,
+            },
+          },
           images: true,
           products: true,
         },
@@ -187,7 +195,7 @@ export class PostsService {
             },
             images: true,
             products: {
-              select:{
+              select: {
                 productId: true,
                 name: true,
                 description: true,
@@ -195,7 +203,7 @@ export class PostsService {
                 rating: true,
                 categoryId: true,
                 approvedById: true,
-              }
+              },
             },
           },
         },

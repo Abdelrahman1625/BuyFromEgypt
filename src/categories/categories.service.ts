@@ -20,7 +20,9 @@ export class CategoriesService {
         userId,
       },
       include: {
-        user: true,
+        user: {
+          select: { userId: true, name: true, email: true, role: true, type: true, active: true },
+        },
       },
     });
 
@@ -29,9 +31,13 @@ export class CategoriesService {
 
   async findAll(): Promise<Category[]> {
     return this.prisma.category.findMany({
-      include: { user: true },
+      include: {
+        user: {
+          select: { userId: true, name: true, email: true, role: true, type: true, active: true },
+        },
+      },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'asc',
       },
     });
   }
@@ -39,7 +45,11 @@ export class CategoriesService {
   async findOne(categoryId: string): Promise<Category> {
     const category = await this.prisma.category.findUnique({
       where: { categoryId },
-      include: { user: true, products: true },
+      include: {
+        user: {
+          select: { userId: true, name: true, email: true, role: true, type: true, active: true },
+        },
+      },
     });
 
     if (!category) {
@@ -59,7 +69,11 @@ export class CategoriesService {
     const updatedCategory = await this.prisma.category.update({
       where: { categoryId },
       data: { ...updateCategoryDto },
-      include: { user: true },
+      include: {
+        user: {
+          select: { userId: true, name: true, email: true, role: true, type: true, active: true },
+        },
+      },
     });
 
     return updatedCategory;
