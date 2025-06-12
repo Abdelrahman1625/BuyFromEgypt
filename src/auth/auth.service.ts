@@ -31,14 +31,25 @@ export class AuthService {
     }
 
     const existingUser = await this.prisma.user.findFirst({
-      where: { OR: [{ email: registerDto.email }, { phoneNumber: registerDto.phoneNumber }, { taxId: registerDto.taxId }] },
-      select: { email: true, phoneNumber: true, taxId: true },
+      where: {
+        OR: [{ email: registerDto.email }, { phoneNumber: registerDto.phoneNumber }, { taxId: registerDto.taxId }, { nationalId: registerDto.nationalId }],
+      },
+      select: { email: true, phoneNumber: true, taxId: true, nationalId: true },
     });
 
     if (existingUser) {
-      throw new UnauthorizedException(
-        existingUser.email === registerDto.email || existingUser.phoneNumber === registerDto.phoneNumber ? 'Email Or Phone number is already exists' : 'Tax ID is already exists'
-      );
+      if (existingUser.email === registerDto.email) {
+        throw new UnauthorizedException('Email is already registered');
+      }
+      if (existingUser.phoneNumber === registerDto.phoneNumber) {
+        throw new UnauthorizedException('Phone number is already registered');
+      }
+      if (existingUser.taxId === registerDto.taxId) {
+        throw new UnauthorizedException('Tax ID is already registered');
+      }
+      if (existingUser.nationalId === registerDto.nationalId) {
+        throw new UnauthorizedException('National ID is already registered');
+      }
     }
 
     try {
