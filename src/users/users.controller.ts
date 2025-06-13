@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Put, UseGuards, Req, Param, Delete, Patch, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, UseGuards, Req, Param, Delete, Patch, HttpStatus, ForbiddenException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { ApiBody, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-userForAdmin.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleEnum, User } from '@prisma/client';
@@ -10,6 +10,10 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UpdateUserForAdminDto } from './dto/update-user.dto';
 import { CommentLikesService } from 'src/comment-likes/comment-likes.service';
+import { UpdateSocialMediaDto } from './dto/update-social-media.dto';
+import { CreateSocialMediaDto } from './dto/create-social-media.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ProfileResponse } from './interfaces/profile.interface';
 
 @Controller('users')
 export class UsersController {
@@ -115,5 +119,76 @@ export class UsersController {
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
   async delete(@Param('id') userId: string) {
     return this.usersService.deleteUser(userId);
+  }
+
+  @Post(':userId/social-media')
+  @UseGuards(AuthGuard)
+  @Roles(`${RoleEnum.ADMIN}`, `${RoleEnum.USER}`)
+  @ApiBody({ type: CreateSocialMediaDto })
+  @ApiResponse({ status: HttpStatus.CREATED, description: 'Social media created successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
+  @ApiResponse({ status: HttpStatus.CONFLICT, description: 'Social media already exists' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
+  async createSocialMedia(@Param('userId') userId: string, @Body() createSocialMediaDto: CreateSocialMediaDto) {
+    return this.usersService.createSocialMedia(userId, createSocialMediaDto);
+  }
+
+  @Put(':userId/social-media')
+  @UseGuards(AuthGuard)
+  @Roles(`${RoleEnum.ADMIN}`, `${RoleEnum.USER}`)
+  @ApiBody({ type: UpdateSocialMediaDto })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Social media updated successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
+  async updateSocialMedia(@Param('userId') userId: string, @Body() updateSocialMediaDto: UpdateSocialMediaDto) {
+    return this.usersService.updateSocialMedia(userId, updateSocialMediaDto);
+  }
+
+  @Delete(':userId/social-media')
+  @UseGuards(AuthGuard)
+  @Roles(`${RoleEnum.ADMIN}`, `${RoleEnum.USER}`)
+  @ApiResponse({ status: HttpStatus.OK, description: 'Social media deleted successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
+  async deleteSocialMedia(@Param('userId') userId: string) {
+    return this.usersService.deleteSocialMedia(userId);
+  }
+
+  @Get(':userId/social-media')
+  @UseGuards(AuthGuard)
+  @Roles(`${RoleEnum.ADMIN}`, `${RoleEnum.USER}`)
+  @ApiResponse({ status: HttpStatus.OK, description: 'Social media retrieved successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
+  async getSocialMedia(@Param('userId') userId: string) {
+    return this.usersService.getSocialMedia(userId);
+  }
+
+  @Get(':userId/profile')
+  @UseGuards(AuthGuard)
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'User profile retrieved successfully' })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
+  async getUserProfile(@Param('userId') userId: string): Promise<ProfileResponse> {
+    return this.usersService.getUserProfile(userId);
+  }
+
+  @Patch(':userId/profile')
+  @UseGuards(AuthGuard)
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'Profile updated successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid input data' })
+  @ApiResponse({ status: HttpStatus.CONFLICT, description: 'Email or phone number already taken' })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Not authorized to update this profile' })
+  async updateProfile(@Param('userId') userId: string, @Req() req: Request & { user: { userId: string } }, @Body() updateProfileDto: UpdateProfileDto): Promise<User> {
+    // Check if the user is trying to update their own profile
+    if (req.user.userId !== userId) {
+      throw new ForbiddenException('You can only update your own profile');
+    }
+    return this.usersService.updateProfile(userId, updateProfileDto);
   }
 }

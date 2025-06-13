@@ -21,6 +21,7 @@ model User {
   type                     TypeEnum
   active                   Boolean                   @default(false)
   profileImage             String?
+  about                    String?                   @db.Text
   registrationNumber       String?
   industrial               String?
   industrySector           String?
@@ -48,6 +49,12 @@ model User {
   otps                     Otp[]
   conversationParticipants ConversationParticipant[]
   savedPosts               SavedPost[]               @relation("UserSavedPosts")
+  instagram             String?
+  facebook              String?
+  whatsappNumber           String?
+  tiktok                String?
+  xUrl                     String?
+  socialMedia              SocialMedia?
 
   @@index([createdAt])
   @@index([role, active])
@@ -315,4 +322,21 @@ enum MessageType {
   TEXT
   IMAGE
   VIDEO
+}
+
+model SocialMedia {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [userId])
+  instagramHandle String?
+  facebookHandle  String?
+  tiktokHandle    String?
+  xHandle         String?
+  bio             String?  @db.Text
+  followersCount  Int      @default(0)
+  followingCount  Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
 }
