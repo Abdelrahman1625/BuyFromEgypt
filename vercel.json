@@ -12,6 +12,11 @@
   ],
   "routes": [
     {
+      "src": "/socket.io/(.*)",
+      "dest": "https://glib-road-blue.glitch.me/socket.io/$1",
+      "continue": true
+    },
+    {
       "src": "/(.*)",
       "dest": "/src/vercel.ts"
     }

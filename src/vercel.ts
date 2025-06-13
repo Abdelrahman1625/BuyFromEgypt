@@ -13,11 +13,9 @@ const httpServer = createServer(server);
 let app: INestApplication;
 let io: SocketIOServer;
 
-if (process.env.NODE_ENV !== 'production') {
-  io = new SocketIOServer(httpServer, {
-    cors: { origin: '*', methods: ['GET', 'POST', 'PATCH'] },
-  });
-}
+io = new SocketIOServer(httpServer, {
+  cors: { origin: '*', methods: ['GET', 'POST', 'PATCH'] },
+});
 
 async function bootstrap(): Promise<express.Express> {
   if (!app) {
@@ -26,16 +24,14 @@ async function bootstrap(): Promise<express.Express> {
     nestApp.enableCors();
     setupSwagger(nestApp);
 
-    if (io && process.env.NODE_ENV !== 'production') {
-      const { ChatGateway } = await import('./chat/chat.gateway');
-      const chatGateway = nestApp.get(ChatGateway);
-      chatGateway.afterInit(io);
+    const { ChatGateway } = await import('./chat/chat.gateway');
+    const chatGateway = nestApp.get(ChatGateway);
+    chatGateway.afterInit(io);
 
-      io.on('connection', (socket) => {
-        chatGateway.handleConnection(socket);
-        socket.on('disconnect', () => chatGateway.handleDisconnect(socket));
-      });
-    }
+    io.on('connection', (socket) => {
+      chatGateway.handleConnection(socket);
+      socket.on('disconnect', () => chatGateway.handleDisconnect(socket));
+    });
 
     await nestApp.init();
     app = nestApp;

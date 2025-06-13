@@ -35,11 +35,9 @@ async function bootstrap() {
   const httpAdapter = app.get(HttpAdapterHost);
   app.useGlobalFilters(new PrismaExceptionFilter(httpAdapter));
 
-  const socketIoAdapter = new SocketIOAdapter(app);
-  if (process.env.NODE_ENV === 'production') {
-    await socketIoAdapter.connectToRedis();
-  }
-  app.useWebSocketAdapter(socketIoAdapter);
+  const adapter = new SocketIOAdapter(app);
+  await adapter.connectToRedis();
+  app.useWebSocketAdapter(adapter);
 
   setupSwagger(app);
 
@@ -49,11 +47,11 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-
-  console.log(`🚀 Server running on http://localhost:${port}`);
-  console.log(`📄 Swagger Docs available at: http://localhost:${port}/api-docs`);
+  const PORT = process.env.PORT || 3000;
+  await app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`📄 Swagger Docs available at: http://localhost:${PORT}/api-docs`);
+  });
 }
 
 if (require.main === module) {
