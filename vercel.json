@@ -12,11 +12,6 @@
   ],
   "routes": [
     {
-      "src": "/socket.io/(.*)",
-      "dest": "https://BuyFromEgypt.abdelrahmanade6.repl.co/socket.io/$1",
-      "continue": true
-    },
-    {
       "src": "/(.*)",
       "dest": "/src/vercel.ts"
     }

@@ -36,7 +36,9 @@ async function bootstrap() {
   app.useGlobalFilters(new PrismaExceptionFilter(httpAdapter));
 
   const socketIoAdapter = new SocketIOAdapter(app);
-  await socketIoAdapter.connectToRedis();
+  if (process.env.NODE_ENV === 'production') {
+    await socketIoAdapter.connectToRedis();
+  }
   app.useWebSocketAdapter(socketIoAdapter);
 
   setupSwagger(app);
@@ -54,4 +56,8 @@ async function bootstrap() {
   console.log(`📄 Swagger Docs available at: http://localhost:${port}/api-docs`);
 }
 
-bootstrap(); // Directly call bootstrap
+if (require.main === module) {
+  bootstrap();
+}
+
+export default bootstrap;
