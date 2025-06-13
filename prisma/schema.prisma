@@ -22,7 +22,7 @@ model User {
   active                   Boolean                   @default(false)
   profileImage             String?
   about                    String?                   @db.Text
-  registrationNumber       String?
+  registrationNumber       String?                   @unique
   industrial               String?
   industrySector           String?
   commercial               String?
@@ -49,11 +49,6 @@ model User {
   otps                     Otp[]
   conversationParticipants ConversationParticipant[]
   savedPosts               SavedPost[]               @relation("UserSavedPosts")
-  instagram             String?
-  facebook              String?
-  whatsappNumber           String?
-  tiktok                String?
-  xUrl                     String?
   socialMedia              SocialMedia?
 
   @@index([createdAt])
@@ -328,6 +323,11 @@ model SocialMedia {
   id              String   @id @default(uuid())
   userId          String   @unique
   user            User     @relation(fields: [userId], references: [userId])
+  instagram       String?
+  facebook        String?
+  whatsappNumber  String?
+  tiktok          String?
+  xUrl            String?
   instagramHandle String?
   facebookHandle  String?
   tiktokHandle    String?

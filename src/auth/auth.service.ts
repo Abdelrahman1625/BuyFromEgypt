@@ -32,9 +32,21 @@ export class AuthService {
 
     const existingUser = await this.prisma.user.findFirst({
       where: {
-        OR: [{ email: registerDto.email }, { phoneNumber: registerDto.phoneNumber }, { taxId: registerDto.taxId }, { nationalId: registerDto.nationalId }],
+        OR: [
+          { email: registerDto.email },
+          { phoneNumber: registerDto.phoneNumber },
+          { taxId: registerDto.taxId },
+          { nationalId: registerDto.nationalId },
+          { registrationNumber: registerDto.registrationNumber },
+        ],
       },
-      select: { email: true, phoneNumber: true, taxId: true, nationalId: true },
+      select: {
+        email: true,
+        phoneNumber: true,
+        taxId: true,
+        nationalId: true,
+        registrationNumber: true,
+      },
     });
 
     if (existingUser) {
@@ -49,6 +61,9 @@ export class AuthService {
       }
       if (existingUser.nationalId === registerDto.nationalId) {
         throw new UnauthorizedException('National ID is already registered');
+      }
+      if (existingUser.registrationNumber === registerDto.registrationNumber) {
+        throw new UnauthorizedException('Registration number is already registered');
       }
     }
 

@@ -126,35 +126,18 @@ export class UsersService {
       this.validateSocialMediaUrls(updateDto);
       this.validateWhatsAppNumber(updateDto.whatsappNumber);
 
-      const userUpdateData = {
-        instagram: updateDto.instagram,
-        facebook: updateDto.facebook,
-        whatsappNumber: updateDto.whatsappNumber,
-        tiktok: updateDto.tiktok,
-        xUrl: updateDto.xUrl,
-      };
-
-      const socialMediaData = {
-        instagramHandle: updateDto.instagramHandle,
-        facebookHandle: updateDto.facebookHandle,
-        tiktokHandle: updateDto.tiktokHandle,
-        xHandle: updateDto.xHandle,
-        bio: updateDto.bio,
-      };
-
       return this.prisma.$transaction(async (prisma) => {
         try {
           const updatedUser = await prisma.user.update({
             where: { userId },
             data: {
-              ...userUpdateData,
               socialMedia: {
                 upsert: {
                   create: {
-                    ...socialMediaData,
+                    ...updateDto,
                   },
                   update: {
-                    ...socialMediaData,
+                    ...updateDto,
                   },
                 },
               },
@@ -186,7 +169,7 @@ export class UsersService {
     }
   }
 
-  async deleteSocialMedia(userId: string): Promise<Partial<User>> {
+  async deleteSocialMedia(userId: string): Promise<ProfileResponse> {
     await this.validateUserExists(userId, true);
 
     return this.prisma.$transaction(async (prisma) => {
@@ -195,21 +178,16 @@ export class UsersService {
           where: { userId },
         });
 
-        const updatedUser = await prisma.user.update({
+        const updatedUser = await prisma.user.findUnique({
           where: { userId },
-          data: {
-            instagram: null,
-            facebook: null,
-            whatsappNumber: null,
-            tiktok: null,
-            xUrl: null,
-          },
-          select: {
-            userId: true,
-            email: true,
+          include: {
             socialMedia: true,
           },
         });
+
+        if (!updatedUser) {
+          throw new NotFoundException(`User with ID '${userId}' not found.`);
+        }
 
         return updatedUser;
       } catch (error) {
@@ -221,12 +199,10 @@ export class UsersService {
     });
   }
 
-  async getSocialMedia(userId: string): Promise<Partial<User>> {
+  async getSocialMedia(userId: string): Promise<ProfileResponse> {
     const user = await this.prisma.user.findUnique({
       where: { userId },
-      select: {
-        userId: true,
-        email: true,
+      include: {
         socialMedia: true,
       },
     });
@@ -248,31 +224,14 @@ export class UsersService {
     this.validateSocialMediaUrls(createDto);
     this.validateWhatsAppNumber(createDto.whatsappNumber);
 
-    const userUpdateData = {
-      instagram: createDto.instagram,
-      facebook: createDto.facebook,
-      whatsappNumber: createDto.whatsappNumber,
-      tiktok: createDto.tiktok,
-      xUrl: createDto.xUrl,
-    };
-
-    const socialMediaData = {
-      instagramHandle: createDto.instagramHandle,
-      facebookHandle: createDto.facebookHandle,
-      tiktokHandle: createDto.tiktokHandle,
-      xHandle: createDto.xHandle,
-      bio: createDto.bio,
-    };
-
     return this.prisma.$transaction(async (prisma) => {
       try {
         const updatedUser = await prisma.user.update({
           where: { userId },
           data: {
-            ...userUpdateData,
             socialMedia: {
               create: {
-                ...socialMediaData,
+                ...createDto,
               },
             },
           },
@@ -325,22 +284,7 @@ export class UsersService {
   async getUserProfile(userId: string): Promise<ProfileResponse> {
     const user = await this.prisma.user.findUnique({
       where: { userId },
-      select: {
-        userId: true,
-        name: true,
-        email: true,
-        phoneNumber: true,
-        country: true,
-        age: true,
-        type: true,
-        profileImage: true,
-        about: true,
-        registrationNumber: true,
-        industrySector: true,
-        commercial: true,
-        address: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
         socialMedia: true,
       },
     });

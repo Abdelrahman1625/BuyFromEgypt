@@ -25,6 +25,7 @@ CREATE TABLE "User" (
     "type" "TypeEnum" NOT NULL,
     "active" BOOLEAN NOT NULL DEFAULT false,
     "profileImage" TEXT,
+    "about" TEXT,
     "registrationNumber" TEXT,
     "industrial" TEXT,
     "industrySector" TEXT,
@@ -209,6 +210,21 @@ CREATE TABLE "Message" (
 );
 
 -- CreateTable
+CREATE TABLE "Notification" (
+    "id" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "recipientId" TEXT NOT NULL,
+    "senderId" TEXT NOT NULL,
+    "postId" TEXT,
+    "commentId" TEXT,
+    "isRead" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Category" (
     "categoryId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -218,6 +234,38 @@ CREATE TABLE "Category" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Category_pkey" PRIMARY KEY ("categoryId")
+);
+
+-- CreateTable
+CREATE TABLE "SavedPost" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "postId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SavedPost_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SocialMedia" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "instagram" TEXT,
+    "facebook" TEXT,
+    "whatsappNumber" TEXT,
+    "tiktok" TEXT,
+    "xUrl" TEXT,
+    "instagramHandle" TEXT,
+    "facebookHandle" TEXT,
+    "tiktokHandle" TEXT,
+    "xHandle" TEXT,
+    "bio" TEXT,
+    "followersCount" INTEGER NOT NULL DEFAULT 0,
+    "followingCount" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SocialMedia_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -255,6 +303,9 @@ CREATE UNIQUE INDEX "User_nationalId_key" ON "User"("nationalId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_taxId_key" ON "User"("taxId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_registrationNumber_key" ON "User"("registrationNumber");
 
 -- CreateIndex
 CREATE INDEX "User_createdAt_idx" ON "User"("createdAt");
@@ -359,6 +410,21 @@ CREATE INDEX "Category_userId_idx" ON "Category"("userId");
 CREATE INDEX "Category_name_idx" ON "Category"("name");
 
 -- CreateIndex
+CREATE INDEX "SavedPost_userId_idx" ON "SavedPost"("userId");
+
+-- CreateIndex
+CREATE INDEX "SavedPost_postId_idx" ON "SavedPost"("postId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SavedPost_userId_postId_key" ON "SavedPost"("userId", "postId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SocialMedia_userId_key" ON "SocialMedia"("userId");
+
+-- CreateIndex
+CREATE INDEX "SocialMedia_userId_idx" ON "SocialMedia"("userId");
+
+-- CreateIndex
 CREATE INDEX "_PostProducts_B_index" ON "_PostProducts"("B");
 
 -- CreateIndex
@@ -429,6 +495,15 @@ ALTER TABLE "Message" ADD CONSTRAINT "Message_receiverId_fkey" FOREIGN KEY ("rec
 
 -- AddForeignKey
 ALTER TABLE "Category" ADD CONSTRAINT "Category_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("userId") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SavedPost" ADD CONSTRAINT "SavedPost_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("userId") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SavedPost" ADD CONSTRAINT "SavedPost_postId_fkey" FOREIGN KEY ("postId") REFERENCES "Post"("postId") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SocialMedia" ADD CONSTRAINT "SocialMedia_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("userId") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "_PostProducts" ADD CONSTRAINT "_PostProducts_A_fkey" FOREIGN KEY ("A") REFERENCES "Post"("postId") ON DELETE CASCADE ON UPDATE CASCADE;
