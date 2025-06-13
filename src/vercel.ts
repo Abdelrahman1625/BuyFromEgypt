@@ -16,6 +16,7 @@ let io: SocketIOServer;
 if (process.env.NODE_ENV !== 'production') {
   io = new SocketIOServer(httpServer, {
     cors: { origin: '*', methods: ['GET', 'POST', 'PATCH'] },
+    path: '/socket.io',
   });
 }
 
@@ -28,12 +29,24 @@ async function bootstrap(): Promise<express.Express> {
 
     if (io && process.env.NODE_ENV !== 'production') {
       const { ChatGateway } = await import('./chat/chat.gateway');
-      const chatGateway = nestApp.get(ChatGateway);
-      chatGateway.afterInit(io);
+      const { NotificationGateway } = await import('./notification/notification.gateway');
 
-      io.on('connection', (socket) => {
+      const chatGateway = nestApp.get(ChatGateway);
+      const notificationGateway = nestApp.get(NotificationGateway);
+
+      chatGateway.afterInit(io);
+      notificationGateway.afterInit(io);
+
+      const chatNamespace = io.of('/chat');
+      const notificationNamespace = io.of('/notification');
+
+      chatNamespace.on('connection', (socket) => {
         chatGateway.handleConnection(socket);
         socket.on('disconnect', () => chatGateway.handleDisconnect(socket));
+      });
+
+      notificationNamespace.on('connection', (socket) => {
+        notificationGateway.handleConnection(socket);
       });
     }
 

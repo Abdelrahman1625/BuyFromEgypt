@@ -8,8 +8,7 @@ import { Logger, Injectable } from '@nestjs/common';
 @Injectable()
 @WebSocketGateway({
   cors: { origin: '*', methods: ['GET', 'POST', 'PATCH'] },
-  transports: ['websocket', 'polling'],
-  path: '/socket.io',
+  namespace: '/chat',
 })
 export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -21,7 +20,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   afterInit(server: Server) {
     this.server = server;
-    this.logger.log('WebSocket Gateway initialized');
+    this.logger.log('Chat WebSocket Gateway initialized');
   }
 
   async handleConnection(client: Socket) {
@@ -96,17 +95,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       const isReceiverOnline = receiverSockets.length > 0;
 
       if (isReceiverOnline) {
-        receiverSockets.forEach((socketId) => {
-          const socket = this.server.sockets.sockets.get(socketId);
-          if (socket) {
-            this.logger.log(`Sending message to receiver socket: ${socketId}, receiver: ${payload.receiverId}`);
-            socket.emit('receiveMessage', message);
-          }
-        });
+        this.server.to(payload.receiverId).emit('receiveMessage', message);
 
         const isPrivate = await this.chatService.isConversationPrivate(message.conversationId);
         if (!isPrivate) {
-          this.server.to(message.conversationId).emit('receiveMessage', message); // send to all
+          this.server.to(message.conversationId).emit('receiveMessage', message);
         }
 
         const updatePayload: UpdateMessageStatusDto = {

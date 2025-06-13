@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notification Test</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      #notifications {
+        border: 1px solid #ccc;
+        padding: 10px;
+        height: 300px;
+        overflow-y: scroll;
+        margin-bottom: 10px;
+        background: #f9f9f9;
+      }
+      .notification {
+        margin-bottom: 5px;
+        padding: 5px;
+        border-bottom: 1px solid #eee;
+      }
+      #connectionStatus {
+        font-weight: bold;
+      }
+      .connected {
+        color: green;
+      }
+      .disconnected {
+        color: red;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Notification Test</h1>
+    <div>
+      <label for="userId">Your User ID:</label>
+      <input type="text" id="userId" placeholder="Enter your user ID" />
+      <button onclick="connect()">Connect</button>
+      <span id="connectionStatus" class="disconnected">Disconnected</span>
+    </div>
+    <div id="notifications"></div>
+
+    <script>
+      let socket;
+      let currentUserId = '';
+
+      function connect() {
+        currentUserId = document.getElementById('userId').value.trim();
+        if (!currentUserId) return alert('Please enter your user ID');
+
+        if (socket) {
+          socket.disconnect();
+        }
+
+        socket = io('http://localhost:3000/notification', {
+          query: { userId: currentUserId },
+          transports: ['websocket'],
+        });
+
+        socket.on('connect', () => {
+          document.getElementById('connectionStatus').textContent = 'Connected';
+          document.getElementById('connectionStatus').className = 'connected';
+        });
+
+        socket.on('disconnect', () => {
+          document.getElementById('connectionStatus').textContent = 'Disconnected';
+          document.getElementById('connectionStatus').className = 'disconnected';
+          appendNotification('Disconnected from server');
+        });
+
+        socket.on('connect_error', (err) => {
+          appendNotification('Connection error: ' + err.message);
+        });
+
+        socket.on('notification', (data) => {
+          console.log('Received notification:', data);
+          appendNotification(data.message);
+        });
+      }
+
+      function appendNotification(message) {
+        const notificationsDiv = document.getElementById('notifications');
+        const notificationDiv = document.createElement('div');
+        notificationDiv.className = 'notification';
+        notificationDiv.textContent = message;
+        notificationsDiv.appendChild(notificationDiv);
+        notificationsDiv.scrollTop = notificationsDiv.scrollHeight;
+      }
+    </script>
+  </body>
+</html>

@@ -104,7 +104,7 @@
           socket.disconnect();
         }
 
-        socket = io('http://localhost:3000', {
+        socket = io('http://localhost:3000/chat', {
           query: { userId: currentUserId },
           transports: ['websocket'],
         });
