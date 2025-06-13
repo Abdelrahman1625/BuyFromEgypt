@@ -13,7 +13,7 @@
   "routes": [
     {
       "src": "/socket.io/(.*)",
-      "dest": "https://glib-road-blue.glitch.me/socket.io/$1",
+      "dest": "https://YOUR_REPLIT_APP_URL/socket.io/$1",
       "continue": true
     },
     {
