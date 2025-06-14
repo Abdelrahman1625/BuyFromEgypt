@@ -136,8 +136,25 @@ export class ProductsService {
     }
 
     let uploadedImages;
-    if (files && files.length > 0 && product.cloudFolder) {
-      uploadedImages = await this.cloudinaryService.uploadImages(files, product.cloudFolder);
+    if (files && files.length > 0) {
+      if (product.images && product.images.length > 0) {
+        try {
+          await Promise.all(product.images.map((image) => this.cloudinaryService.deleteImage(image.id)));
+        } catch (error) {
+          console.error('Error deleting existing images from Cloudinary during product update:', error);
+        }
+
+        await this.prisma.productImage.deleteMany({
+          where: {
+            productId: productId,
+          },
+        });
+      }
+      if (product.cloudFolder) {
+        uploadedImages = await this.cloudinaryService.uploadImages(files, product.cloudFolder);
+      } else {
+        console.warn(`Product ${productId} has no cloudFolder, skipping new image upload.`);
+      }
     }
 
     const { imagesToDelete, ...updateData } = updateProductDto;
@@ -223,6 +240,11 @@ export class ProductsService {
               console.error('Error deleting images from Cloudinary:', error);
               console.log('Continuing with product deletion despite image deletion error');
             }
+            await prisma.productImage.deleteMany({
+              where: {
+                productId: productId,
+              },
+            });
           }
           if (product.cloudFolder) {
             try {

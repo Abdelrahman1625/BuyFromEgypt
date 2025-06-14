@@ -15,6 +15,7 @@ import {
   BadRequestException,
   HttpCode,
   UnauthorizedException,
+  Patch,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -59,7 +60,9 @@ export class ProductsController {
     return this.productsService.findProductById(id);
   }
 
-  @Post(':id')
+  @Patch(':id')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FilesInterceptor('images', 10))
   update(
     @UploadedFiles() files: Express.Multer.File[],
     @Req()
@@ -90,7 +93,6 @@ export class ProductsController {
   @UseGuards(AuthGuard, RolesGuard)
   @Roles(RoleEnum.ADMIN, RoleEnum.USER)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete a product' })
   @ApiParam({ name: 'id', description: 'Product ID' })
   @ApiResponse({
     status: HttpStatus.OK,

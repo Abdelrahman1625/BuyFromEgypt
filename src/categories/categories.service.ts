@@ -3,10 +3,14 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CloudinaryService } from '../common/modules/cloudinary/cloudinary.service';
 
 @Injectable()
 export class CategoriesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cloudinaryService: CloudinaryService
+  ) {}
 
   async create(userId: string, createCategoryDto: CreateCategoryDto): Promise<Category> {
     const user = await this.prisma.user.findFirst({ where: { userId } });
@@ -86,7 +90,38 @@ export class CategoriesService {
       throw new NotFoundException(`Category with ID '${categoryId}' not found.`);
     }
 
-    await this.prisma.category.delete({ where: { categoryId } });
+    await this.prisma.$transaction(async (prisma) => {
+      const productsToDel = await prisma.product.findMany({
+        where: { categoryId },
+        include: { images: true },
+      });
+
+      for (const product of productsToDel) {
+        if (product.images && product.images.length > 0) {
+          try {
+            await Promise.all(product.images.map((image) => this.cloudinaryService.deleteImage(image.id)));
+          } catch (error) {
+            console.error(`Error deleting images for product ${product.productId} from Cloudinary:`, error);
+            console.log('Continuing with product deletion despite image deletion error');
+          }
+          await prisma.productImage.deleteMany({
+            where: {
+              productId: product.productId,
+            },
+          });
+        }
+        if (product.cloudFolder) {
+          try {
+            await this.cloudinaryService.deleteFolder(product.cloudFolder);
+          } catch (error) {
+            console.error(`Error deleting Cloudinary folder for product ${product.productId}:`, error);
+            console.log('Continuing with product deletion despite folder deletion error');
+          }
+        }
+        await prisma.product.delete({ where: { productId: product.productId } });
+      }
+      await prisma.category.delete({ where: { categoryId } });
+    });
 
     return { message: `Category with ID '${categoryId}' has been deleted successfully.` };
   }
