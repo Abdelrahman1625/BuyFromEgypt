@@ -10,8 +10,6 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UpdateUserForAdminDto } from './dto/update-user.dto';
 import { CommentLikesService } from 'src/comment-likes/comment-likes.service';
-import { UpdateSocialMediaDto } from './dto/update-social-media.dto';
-import { CreateSocialMediaDto } from './dto/create-social-media.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfileResponse } from './interfaces/profile.interface';
 
@@ -121,61 +119,14 @@ export class UsersController {
     return this.usersService.deleteUser(userId);
   }
 
-  @Post(':userId/social-media')
+  @Get(':userId/profile')
   @UseGuards(AuthGuard)
-  @Roles(`${RoleEnum.ADMIN}`, `${RoleEnum.USER}`)
-  @ApiBody({ type: CreateSocialMediaDto })
-  @ApiResponse({ status: HttpStatus.CREATED, description: 'Social media created successfully' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
-  @ApiResponse({ status: HttpStatus.CONFLICT, description: 'Social media already exists' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
-  async createSocialMedia(@Param('userId') userId: string, @Body() createSocialMediaDto: CreateSocialMediaDto) {
-    // return this.usersService.createSocialMedia(userId, createSocialMediaDto);
+  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiResponse({ status: HttpStatus.OK, description: 'User profile retrieved successfully' })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
+  async getUserProfile(@Param('userId') userId: string): Promise<ProfileResponse> {
+    return this.usersService.getUserProfile(userId);
   }
-
-  @Put(':userId/social-media')
-  @UseGuards(AuthGuard)
-  @Roles(`${RoleEnum.ADMIN}`, `${RoleEnum.USER}`)
-  @ApiBody({ type: UpdateSocialMediaDto })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Social media updated successfully' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
-  async updateSocialMedia(@Param('userId') userId: string, @Body() updateSocialMediaDto: UpdateSocialMediaDto) {
-    // return this.usersService.updateSocialMedia(userId, updateSocialMediaDto);
-  }
-
-  @Delete(':userId/social-media')
-  @UseGuards(AuthGuard)
-  @Roles(`${RoleEnum.ADMIN}`, `${RoleEnum.USER}`)
-  @ApiResponse({ status: HttpStatus.OK, description: 'Social media deleted successfully' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
-  async deleteSocialMedia(@Param('userId') userId: string) {
-    // return this.usersService.deleteSocialMedia(userId);
-  }
-
-  @Get(':userId/social-media')
-  @UseGuards(AuthGuard)
-  @Roles(`${RoleEnum.ADMIN}`, `${RoleEnum.USER}`)
-  @ApiResponse({ status: HttpStatus.OK, description: 'Social media retrieved successfully' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
-  async getSocialMedia(@Param('userId') userId: string) {
-    // return this.usersService.getSocialMedia(userId);
-  }
-
-  // @Get(':userId/profile')
-  // @UseGuards(AuthGuard)
-  // @ApiParam({ name: 'userId', description: 'User ID' })
-  // @ApiResponse({ status: HttpStatus.OK, description: 'User profile retrieved successfully' })
-  // @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
-  // async getUserProfile(@Param('userId') userId: string): Promise<ProfileResponse> {
-  //   return this.usersService.getUserProfile(userId);
-  // }
 
   @Patch(':userId/profile')
   @UseGuards(AuthGuard)

@@ -14,6 +14,7 @@ import { FollowModule } from './follow/follow.module';
 import { ValidationModule } from './common/validation/validation.module';
 import { ChatModule } from './chat/chat.module';
 import { SearchModule } from './search/search.module';
+import { SocialMediaModule } from './social-media/social-media.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { SearchModule } from './search/search.module';
     ValidationModule,
     ChatModule,
     SearchModule,
+    SocialMediaModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
