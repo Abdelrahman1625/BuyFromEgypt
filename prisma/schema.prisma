@@ -49,7 +49,8 @@ model User {
   otps                     Otp[]
   conversationParticipants ConversationParticipant[]
   savedPosts               SavedPost[]               @relation("UserSavedPosts")
-  socialMedia              SocialMedia?
+  socialLinks              SocialMedia[]             @relation(name: "UserSocialLinks")
+  socialLinkId             String?
 
   @@index([createdAt])
   @@index([role, active])
@@ -270,11 +271,6 @@ model Notification {
   createdAt   DateTime @default(now())
 }
 
-enum ConversationType {
-  PRIVATE
-  GROUP
-}
-
 model Category {
   categoryId  String    @id @default(uuid())
   name        String
@@ -302,6 +298,20 @@ model SavedPost {
   @@index([postId])
 }
 
+model SocialMedia {
+  id        String   @id @default(uuid())
+  userId    String
+  platform  String
+  url       String?
+  handle    String?
+  user      User     @relation(name: "UserSocialLinks", fields: [userId], references: [userId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([platform])
+}
+
 enum RoleEnum {
   USER
   ADMIN
@@ -319,24 +329,7 @@ enum MessageType {
   VIDEO
 }
 
-model SocialMedia {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [userId])
-  instagram       String?
-  facebook        String?
-  whatsappNumber  String?
-  tiktok          String?
-  xUrl            String?
-  instagramHandle String?
-  facebookHandle  String?
-  tiktokHandle    String?
-  xHandle         String?
-  bio             String?  @db.Text
-  followersCount  Int      @default(0)
-  followingCount  Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([userId])
+enum ConversationType {
+  PRIVATE
+  GROUP
 }

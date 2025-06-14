@@ -1,7 +1,4 @@
 -- CreateEnum
-CREATE TYPE "ConversationType" AS ENUM ('PRIVATE', 'GROUP');
-
--- CreateEnum
 CREATE TYPE "RoleEnum" AS ENUM ('USER', 'ADMIN', 'SUPER_ADMIN');
 
 -- CreateEnum
@@ -9,6 +6,9 @@ CREATE TYPE "TypeEnum" AS ENUM ('EXPORTER', 'IMPORTER');
 
 -- CreateEnum
 CREATE TYPE "MessageType" AS ENUM ('TEXT', 'IMAGE', 'VIDEO');
+
+-- CreateEnum
+CREATE TYPE "ConversationType" AS ENUM ('PRIVATE', 'GROUP');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -38,6 +38,7 @@ CREATE TABLE "User" (
     "isOnline" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "socialLinkId" TEXT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("userId")
 );
@@ -250,18 +251,9 @@ CREATE TABLE "SavedPost" (
 CREATE TABLE "SocialMedia" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "instagram" TEXT,
-    "facebook" TEXT,
-    "whatsappNumber" TEXT,
-    "tiktok" TEXT,
-    "xUrl" TEXT,
-    "instagramHandle" TEXT,
-    "facebookHandle" TEXT,
-    "tiktokHandle" TEXT,
-    "xHandle" TEXT,
-    "bio" TEXT,
-    "followersCount" INTEGER NOT NULL DEFAULT 0,
-    "followingCount" INTEGER NOT NULL DEFAULT 0,
+    "platform" TEXT NOT NULL,
+    "url" TEXT,
+    "handle" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -419,10 +411,10 @@ CREATE INDEX "SavedPost_postId_idx" ON "SavedPost"("postId");
 CREATE UNIQUE INDEX "SavedPost_userId_postId_key" ON "SavedPost"("userId", "postId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "SocialMedia_userId_key" ON "SocialMedia"("userId");
+CREATE INDEX "SocialMedia_userId_idx" ON "SocialMedia"("userId");
 
 -- CreateIndex
-CREATE INDEX "SocialMedia_userId_idx" ON "SocialMedia"("userId");
+CREATE INDEX "SocialMedia_platform_idx" ON "SocialMedia"("platform");
 
 -- CreateIndex
 CREATE INDEX "_PostProducts_B_index" ON "_PostProducts"("B");

@@ -131,7 +131,7 @@ export class UsersController {
   @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
   async createSocialMedia(@Param('userId') userId: string, @Body() createSocialMediaDto: CreateSocialMediaDto) {
-    return this.usersService.createSocialMedia(userId, createSocialMediaDto);
+    // return this.usersService.createSocialMedia(userId, createSocialMediaDto);
   }
 
   @Put(':userId/social-media')
@@ -143,7 +143,7 @@ export class UsersController {
   @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
   async updateSocialMedia(@Param('userId') userId: string, @Body() updateSocialMediaDto: UpdateSocialMediaDto) {
-    return this.usersService.updateSocialMedia(userId, updateSocialMediaDto);
+    // return this.usersService.updateSocialMedia(userId, updateSocialMediaDto);
   }
 
   @Delete(':userId/social-media')
@@ -154,7 +154,7 @@ export class UsersController {
   @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
   async deleteSocialMedia(@Param('userId') userId: string) {
-    return this.usersService.deleteSocialMedia(userId);
+    // return this.usersService.deleteSocialMedia(userId);
   }
 
   @Get(':userId/social-media')
@@ -165,17 +165,17 @@ export class UsersController {
   @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
   async getSocialMedia(@Param('userId') userId: string) {
-    return this.usersService.getSocialMedia(userId);
+    // return this.usersService.getSocialMedia(userId);
   }
 
-  @Get(':userId/profile')
-  @UseGuards(AuthGuard)
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'User profile retrieved successfully' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
-  async getUserProfile(@Param('userId') userId: string): Promise<ProfileResponse> {
-    return this.usersService.getUserProfile(userId);
-  }
+  // @Get(':userId/profile')
+  // @UseGuards(AuthGuard)
+  // @ApiParam({ name: 'userId', description: 'User ID' })
+  // @ApiResponse({ status: HttpStatus.OK, description: 'User profile retrieved successfully' })
+  // @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
+  // async getUserProfile(@Param('userId') userId: string): Promise<ProfileResponse> {
+  //   return this.usersService.getUserProfile(userId);
+  // }
 
   @Patch(':userId/profile')
   @UseGuards(AuthGuard)

@@ -23,18 +23,18 @@ export class UsersService {
     private mailService: MailService
   ) {}
 
-  private async validateUserExists(userId: string, includeSocialMedia = false): Promise<UserWithSocialMedia> {
-    const user = await this.prisma.user.findUnique({
-      where: { userId },
-      include: includeSocialMedia ? { socialMedia: true } : undefined,
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with ID '${userId}' not found.`);
-    }
-
-    return user as UserWithSocialMedia;
-  }
+  // private async validateUserExists(userId: string, includeSocialMedia = false): Promise<UserWithSocialMedia> {
+  //   const user = await this.prisma.user.findUnique({
+  //     where: { userId },
+  //     include: includeSocialMedia ? { socialMedia: true } : undefined,
+  //   });
+  //
+  //   if (!user) {
+  //     throw new NotFoundException(`User with ID '${userId}' not found.`);
+  //   }
+  //
+  //   return user as UserWithSocialMedia;
+  // }
 
   private validateSocialMediaUrls(data: { instagram?: string; facebook?: string; tiktok?: string; xUrl?: string }) {
     const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
@@ -119,141 +119,141 @@ export class UsersService {
     return { message: `User with ID ${userId} has been ${isActive ? 'approved' : 'deactivated'} successfully.` };
   }
 
-  async updateSocialMedia(userId: string, updateDto: UpdateSocialMediaDto): Promise<Partial<User>> {
-    try {
-      await this.validateUserExists(userId, true);
+  // async updateSocialMedia(userId: string, updateDto: UpdateSocialMediaDto): Promise<Partial<User>> {
+  //   try {
+  //     await this.validateUserExists(userId, true);
+  //
+  //     this.validateSocialMediaUrls(updateDto);
+  //     this.validateWhatsAppNumber(updateDto.whatsappNumber);
+  //
+  //     return this.prisma.$transaction(async (prisma) => {
+  //       try {
+  //         const updatedUser = await prisma.user.update({
+  //           where: { userId },
+  //           data: {
+  //             socialMedia: {
+  //               upsert: {
+  //                 create: {
+  //                   ...updateDto,
+  //                 },
+  //                 update: {
+  //                   ...updateDto,
+  //                 },
+  //               },
+  //             },
+  //           },
+  //           select: {
+  //             userId: true,
+  //             email: true,
+  //             socialMedia: true,
+  //           },
+  //         });
+  //
+  //         return updatedUser;
+  //       } catch (error) {
+  //         throw new BadRequestException({
+  //           message: 'Failed to update social media information',
+  //           error: error.message,
+  //         });
+  //       }
+  //     });
+  //   } catch (error) {
+  //     if (error instanceof NotFoundException || error instanceof BadRequestException) {
+  //       throw error;
+  //     }
+  //
+  //     throw new BadRequestException({
+  //       message: 'Failed to update social media',
+  //       error: error.message,
+  //     });
+  //   }
+  // }
 
-      this.validateSocialMediaUrls(updateDto);
-      this.validateWhatsAppNumber(updateDto.whatsappNumber);
+  // async deleteSocialMedia(userId: string): Promise<ProfileResponse> {
+  //   await this.validateUserExists(userId, true);
+  //
+  //   return this.prisma.$transaction(async (prisma) => {
+  //     try {
+  //       await prisma.socialMedia.deleteMany({
+  //         where: { userId },
+  //       });
+  //
+  //       const updatedUser = await prisma.user.findUnique({
+  //         where: { userId },
+  //         include: {
+  //           socialMedia: true,
+  //         },
+  //       });
+  //
+  //       if (!updatedUser) {
+  //         throw new NotFoundException(`User with ID '${userId}' not found.`);
+  //       }
+  //
+  //       return updatedUser;
+  //     } catch (error) {
+  //       throw new BadRequestException({
+  //         message: 'Failed to delete social media information',
+  //         error: error.message,
+  //       });
+  //     }
+  //   });
+  // }
 
-      return this.prisma.$transaction(async (prisma) => {
-        try {
-          const updatedUser = await prisma.user.update({
-            where: { userId },
-            data: {
-              socialMedia: {
-                upsert: {
-                  create: {
-                    ...updateDto,
-                  },
-                  update: {
-                    ...updateDto,
-                  },
-                },
-              },
-            },
-            select: {
-              userId: true,
-              email: true,
-              socialMedia: true,
-            },
-          });
+  // async getSocialMedia(userId: string): Promise<ProfileResponse> {
+  //   const user = await this.prisma.user.findUnique({
+  //     where: { userId },
+  //     include: {
+  //       socialMedia: true,
+  //     },
+  //   });
+  //
+  //   if (!user) {
+  //     throw new NotFoundException(`User with ID '${userId}' not found.`);
+  //   }
+  //
+  //   return user;
+  // }
 
-          return updatedUser;
-        } catch (error) {
-          throw new BadRequestException({
-            message: 'Failed to update social media information',
-            error: error.message,
-          });
-        }
-      });
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException) {
-        throw error;
-      }
-
-      throw new BadRequestException({
-        message: 'Failed to update social media',
-        error: error.message,
-      });
-    }
-  }
-
-  async deleteSocialMedia(userId: string): Promise<ProfileResponse> {
-    await this.validateUserExists(userId, true);
-
-    return this.prisma.$transaction(async (prisma) => {
-      try {
-        await prisma.socialMedia.deleteMany({
-          where: { userId },
-        });
-
-        const updatedUser = await prisma.user.findUnique({
-          where: { userId },
-          include: {
-            socialMedia: true,
-          },
-        });
-
-        if (!updatedUser) {
-          throw new NotFoundException(`User with ID '${userId}' not found.`);
-        }
-
-        return updatedUser;
-      } catch (error) {
-        throw new BadRequestException({
-          message: 'Failed to delete social media information',
-          error: error.message,
-        });
-      }
-    });
-  }
-
-  async getSocialMedia(userId: string): Promise<ProfileResponse> {
-    const user = await this.prisma.user.findUnique({
-      where: { userId },
-      include: {
-        socialMedia: true,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with ID '${userId}' not found.`);
-    }
-
-    return user;
-  }
-
-  async createSocialMedia(userId: string, createDto: CreateSocialMediaDto): Promise<Partial<User>> {
-    const user = await this.validateUserExists(userId, true);
-
-    if (user.socialMedia) {
-      throw new ConflictException('Social media information already exists for this user. Use update instead.');
-    }
-
-    this.validateSocialMediaUrls(createDto);
-    this.validateWhatsAppNumber(createDto.whatsappNumber);
-
-    return this.prisma.$transaction(async (prisma) => {
-      try {
-        const updatedUser = await prisma.user.update({
-          where: { userId },
-          data: {
-            socialMedia: {
-              create: {
-                ...createDto,
-              },
-            },
-          },
-          select: {
-            userId: true,
-            email: true,
-            socialMedia: true,
-          },
-        });
-
-        return updatedUser;
-      } catch (error) {
-        throw new BadRequestException({
-          message: 'Failed to create social media information',
-          error: error.message,
-        });
-      }
-    });
-  }
+  // async createSocialMedia(userId: string, createDto: CreateSocialMediaDto): Promise<Partial<User>> {
+  //   const user = await this.validateUserExists(userId, true);
+  //
+  //   if (user.socialMedia) {
+  //     throw new ConflictException('Social media information already exists for this user. Use update instead.');
+  //   }
+  //
+  //   this.validateSocialMediaUrls(createDto);
+  //   this.validateWhatsAppNumber(createDto.whatsappNumber);
+  //
+  //   return this.prisma.$transaction(async (prisma) => {
+  //     try {
+  //       const updatedUser = await prisma.user.update({
+  //         where: { userId },
+  //         data: {
+  //           socialMedia: {
+  //             create: {
+  //               ...createDto,
+  //             },
+  //           },
+  //         },
+  //         select: {
+  //           userId: true,
+  //           email: true,
+  //           socialMedia: true,
+  //         },
+  //       });
+  //
+  //       return updatedUser;
+  //     } catch (error) {
+  //       throw new BadRequestException({
+  //         message: 'Failed to create social media information',
+  //         error: error.message,
+  //       });
+  //     }
+  //   });
+  // }
 
   async updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<User> {
-    await this.validateUserExists(userId);
+    await this.validationService.validateUserExists(userId);
 
     if (updateProfileDto.email) {
       const existingUser = await this.prisma.user.findUnique({
@@ -281,18 +281,18 @@ export class UsersService {
     return updatedUser;
   }
 
-  async getUserProfile(userId: string): Promise<ProfileResponse> {
-    const user = await this.prisma.user.findUnique({
-      where: { userId },
-      include: {
-        socialMedia: true,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException(`User with ID '${userId}' not found.`);
-    }
-
-    return user;
-  }
+  // async getUserProfile(userId: string): Promise<ProfileResponse> {
+  //   const user = await this.prisma.user.findUnique({
+  //     where: { userId },
+  //     include: {
+  //       socialMedia: true,
+  //     },
+  //   });
+  //
+  //   if (!user) {
+  //     throw new NotFoundException(`User with ID '${userId}' not found.`);
+  //   }
+  //
+  //   return user;
+  // }
 }

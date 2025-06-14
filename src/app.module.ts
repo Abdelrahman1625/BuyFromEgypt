@@ -13,6 +13,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { FollowModule } from './follow/follow.module';
 import { ValidationModule } from './common/validation/validation.module';
 import { ChatModule } from './chat/chat.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ChatModule } from './chat/chat.module';
     FollowModule,
     ValidationModule,
     ChatModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
