@@ -9,7 +9,6 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api/v1');
 
-  // Add global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -52,7 +51,6 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  console.log(`🚀 Server running on http://localhost:${port}`);
   console.log(`📄 Swagger Docs available at: http://localhost:${port}/api-docs`);
 }
 

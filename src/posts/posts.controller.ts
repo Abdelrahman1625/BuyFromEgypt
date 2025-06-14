@@ -118,4 +118,9 @@ export class PostsController {
   ) {
     return this.postsService.unsavePost(id, req.user.userId);
   }
+
+  @Get(':id/summary')
+  async getPost(@Param('id') id: string) {
+    return this.postsService.getPostSummery(id);
+  }
 }

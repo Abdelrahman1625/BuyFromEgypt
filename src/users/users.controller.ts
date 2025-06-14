@@ -128,6 +128,11 @@ export class UsersController {
     return this.usersService.getUserProfile(userId);
   }
 
+  @Get(':id/summary')
+  async getUserSummary(@Param('id') userId: string) {
+    return this.usersService.getUserSummary(userId);
+  }
+
   @Patch(':userId/profile')
   @UseGuards(AuthGuard)
   @ApiParam({ name: 'userId', description: 'User ID' })
@@ -142,4 +147,5 @@ export class UsersController {
     }
     return this.usersService.updateProfile(userId, updateProfileDto);
   }
+
 }

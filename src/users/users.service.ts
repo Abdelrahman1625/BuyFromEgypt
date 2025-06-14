@@ -145,4 +145,31 @@ export class UsersService {
 
     return user;
   }
+
+  async getUserSummary(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
+      select: {
+        userId: true,
+        name: true,
+        profileImage: true,
+        industrySector: true,
+        followers: true,
+        following: true,
+        posts: true,
+      },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    return {
+      userId: userId,
+      name: user.name,
+      profileImage: user.profileImage,
+      industry: user.industrySector,
+      followers_count: user.followers.length,
+      following_count: user.following.length,
+      posts_count: user.posts.length,
+    };
+  }
 }

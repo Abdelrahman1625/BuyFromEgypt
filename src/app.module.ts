@@ -15,6 +15,7 @@ import { ValidationModule } from './common/validation/validation.module';
 import { ChatModule } from './chat/chat.module';
 import { SearchModule } from './search/search.module';
 import { SocialMediaModule } from './social-media/social-media.module';
+import { RatingModule } from './rating/rating.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { SocialMediaModule } from './social-media/social-media.module';
     ChatModule,
     SearchModule,
     SocialMediaModule,
+    RatingModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

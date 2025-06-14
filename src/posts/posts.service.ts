@@ -278,4 +278,45 @@ export class PostsService {
 
     return savedPosts.map((savedPost) => savedPost.post);
   }
+
+  async getPostSummery(postId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { postId },
+      select: {
+        postId: true,
+        title: true,
+        content: true,
+        cloudFolder: true,
+        createdAt: true,
+        rating: true,
+        comments: {
+          select: { commentId: true },
+        },
+        user: {
+          select: {
+            userId: true,
+            name: true,
+            profileImage: true,
+          },
+        },
+      },
+    });
+
+    if (!post) throw new NotFoundException('Post not found');
+
+    return {
+      postId: post.postId,
+      title: post.title,
+      content: post.content,
+      cloudFolder: post.cloudFolder,
+      user: {
+        id: post.user.userId,
+        name: post.user.name,
+        profileImage: post.user.profileImage,
+      },
+      rate: post.rating ?? 0,
+      comments_count: post.comments.length,
+      createdAt: post.createdAt,
+    };
+  }
 }

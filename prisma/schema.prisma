@@ -51,6 +51,7 @@ model User {
   savedPosts               SavedPost[]               @relation("UserSavedPosts")
   socialLinks              SocialMedia[]             @relation(name: "UserSocialLinks")
   socialLinkId             String?
+  ratings                  Rating[]
 
   @@index([createdAt])
   @@index([role, active])
@@ -92,6 +93,9 @@ model Post {
   savedBy     SavedPost[] @relation("SavedPosts")
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  rating      Float?      @default(0.0)
+  reviewCount Int         @default(0)
+  Rating      Rating[]
 
   @@index([userId])
 }
@@ -184,6 +188,7 @@ model Product {
   orders         Order[]         @relation("OrderProducts")
   posts          Post[]          @relation("PostProducts")
   images         ProductImage[]  @relation("ProductImages")
+  ratings        Rating[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
@@ -194,6 +199,22 @@ model Product {
   @@index([active])
   @@index([createdAt])
   @@index([slug])
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  value     Int
+  userId    String
+  user      User     @relation(fields: [userId], references: [userId])
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [postId])
+  productId String?
+  product   Product? @relation(fields: [productId], references: [productId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, postId])
+  @@unique([userId, productId])
 }
 
 model ProductImage {
