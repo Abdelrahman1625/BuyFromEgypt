@@ -52,6 +52,7 @@ model User {
   socialLinks              SocialMedia[]             @relation(name: "UserSocialLinks")
   socialLinkId             String?
   ratings                  Rating[]
+  searchHistory            SearchHistory[]
 
   @@index([createdAt])
   @@index([role, active])
@@ -331,6 +332,18 @@ model SocialMedia {
 
   @@index([userId])
   @@index([platform])
+}
+
+model SearchHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [userId])
+  query     String
+  type      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 enum RoleEnum {

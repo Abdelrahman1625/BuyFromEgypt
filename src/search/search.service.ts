@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CreateSearchHistoryDto, GetSearchHistoryDto } from './dto/search-history.dto';
 
 export const SEARCH_TYPES = ['users', 'products', 'messages'] as const;
 
@@ -9,13 +10,13 @@ export type SearchType = (typeof SEARCH_TYPES)[number];
 export class SearchService {
   constructor(private prisma: PrismaService) {}
 
-  async globalSearch(term: string, type: SearchType) {
+  async globalSearch(term: string, type: SearchType, userId: string) {
     this.validateSearchType(type);
+    await this.createSearchHistory({ query: term, type }, userId);
 
     const searchMap = {
       users: () => this.searchUser(term),
       products: () => this.searchProduct(term),
-      // messages: () => this.searchMessage(term),
     };
 
     return searchMap[type]();
@@ -49,6 +50,39 @@ export class SearchService {
       select: {
         productId: true,
         name: true,
+      },
+    });
+  }
+
+  async createSearchHistory(dto: CreateSearchHistoryDto, userId: string) {
+    return this.prisma.searchHistory.create({
+      data: {
+        query: dto.query,
+        type: dto.type,
+        userId,
+      },
+    });
+  }
+
+  async getSearchHistory(userId: string, filters?: GetSearchHistoryDto) {
+    const where = {
+      userId,
+      ...(filters?.type && { type: filters.type }),
+    };
+
+    return this.prisma.searchHistory.findMany({
+      where,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 20,
+    });
+  }
+
+  async clearSearchHistory(userId: string) {
+    return this.prisma.searchHistory.deleteMany({
+      where: {
+        userId,
       },
     });
   }
