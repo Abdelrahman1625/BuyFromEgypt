@@ -8,26 +8,71 @@ import * as process from 'node:process';
 import { CloudinaryService } from '../common/modules/cloudinary/cloudinary.service';
 import { v4 as uuid } from 'uuid';
 import { RoleEnum } from '../common/enums/role.enum';
+import { FilterProductsDto, SortField, SortOrder } from '../common/dto/filter-products.dto';
+import { PaginationService } from '../common/modules/pagination/pagination.service';
+import { PaginatedResponse } from '../common/interfaces/pagination.interface';
+import { FilterService } from '../common/modules/filter/filter.service';
 
 @Injectable()
 export class ProductsService {
   constructor(
     private readonly prisma: PrismaService,
-    private cloudinaryService: CloudinaryService
+    private cloudinaryService: CloudinaryService,
+    private paginationService: PaginationService,
+    private filterService: FilterService
   ) {}
 
-  async findAll(): Promise<Product[]> {
+  async findAll(filters?: FilterProductsDto): Promise<PaginatedResponse<Product>> {
+    const { where, orderBy } = this.filterService.buildProductFilter(filters || {});
+
+    const paginationOptions = this.paginationService.getPaginationOptions(filters || {});
+
+    const total = await this.prisma.product.count({ where });
+
     const products = await this.prisma.product.findMany({
-      include: {
-        owner: { select: { userId: true, name: true, email: true, role: true } },
-        category: { select: { categoryId: true, name: true, description: true } },
-        images: true,
-      },
-      orderBy: {
-        createdAt: 'asc',
+      where,
+      orderBy,
+      skip: paginationOptions.skip,
+      take: paginationOptions.limit,
+      select: {
+        productId: true,
+        name: true,
+        slug: true,
+        description: true,
+        price: true,
+        currencyCode: true,
+        active: true,
+        rating: true,
+        reviewCount: true,
+        createdAt: true,
+        updatedAt: true,
+        owner: {
+          select: {
+            userId: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+        category: {
+          select: {
+            categoryId: true,
+            name: true,
+            description: true,
+          },
+        },
+        images: {
+          select: {
+            id: true,
+            url: true,
+            isPrimary: true,
+            productId: true,
+          },
+        },
       },
     });
-    return products;
+
+    return this.paginationService.createPaginatedResponse(products, total, paginationOptions);
   }
 
   async createProduct(userId: string, createProductDto: CreateProductDto, files: Express.Multer.File[]): Promise<Product> {
@@ -283,5 +328,25 @@ export class ProductsService {
         error: error.message || 'Unknown error occurred during product deletion',
       });
     }
+  }
+
+  async getCategoriesWithProductCount() {
+    const categories = await this.prisma.category.findMany({
+      select: {
+        categoryId: true,
+        name: true,
+        _count: {
+          select: {
+            products: true,
+          },
+        },
+      },
+    });
+
+    return categories.map((category) => ({
+      categoryId: category.categoryId,
+      name: category.name,
+      productCount: category._count.products,
+    }));
   }
 }

@@ -16,6 +16,8 @@ import {
   HttpCode,
   UnauthorizedException,
   Patch,
+  Query,
+  HttpException,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -29,8 +31,12 @@ import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RoleEnum } from '@prisma/client';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { ApiResponse, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { ApiResponse, ApiOperation, ApiParam, ApiTags, ApiQuery } from '@nestjs/swagger';
+import { FilterProductsDto } from '../common/dto/filter-products.dto';
+import { PaginatedResponse } from '../common/interfaces/pagination.interface';
+import { Product } from './entities/product.entity';
 
+@ApiTags('Products')
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
@@ -51,8 +57,47 @@ export class ProductsController {
   }
 
   @Get()
-  findAll() {
-    return this.productsService.findAll();
+  @ApiOperation({ summary: 'Get all products with filters and pagination' })
+  @ApiResponse({ status: 200, description: 'Return all products with filters and pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (starts from 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of items per page' })
+  @ApiQuery({ name: 'minPrice', required: false, type: Number, description: 'Minimum price filter' })
+  @ApiQuery({ name: 'maxPrice', required: false, type: Number, description: 'Maximum price filter' })
+  @ApiQuery({ name: 'minRating', required: false, type: Number, description: 'Minimum rating filter (0-5)' })
+  @ApiQuery({ name: 'active', required: false, type: Boolean, description: 'Filter active products' })
+  @ApiQuery({ name: 'categoryId', required: false, type: String, description: 'Filter by category ID' })
+  @ApiQuery({ name: 'currencyCode', required: false, type: String, description: 'Filter by currency code (e.g., USD, EGP)' })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: ['price', 'rating', 'createdAt', 'name'],
+    description: 'Field to sort by',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order',
+  })
+  async findAll(@Query() filters: FilterProductsDto): Promise<PaginatedResponse<Product>> {
+    try {
+      return await this.productsService.findAll(filters);
+    } catch (error) {
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.BAD_REQUEST,
+          message: error.message,
+          error: error.name,
+        },
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  @Get('/categories-with-count')
+  @ApiResponse({ status: 200, description: 'Return all categories with product counts' })
+  async getCategoriesWithCount() {
+    return this.productsService.getCategoriesWithProductCount();
   }
 
   @Get(':id')
