@@ -35,11 +35,15 @@ import { ApiResponse, ApiOperation, ApiParam, ApiTags, ApiQuery } from '@nestjs/
 import { FilterProductsDto } from '../common/dto/filter-products.dto';
 import { PaginatedResponse } from '../common/interfaces/pagination.interface';
 import { Product } from './entities/product.entity';
+import { SaveItemsService } from '../save-items/save-items.service';
 
 @ApiTags('Products')
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private saveItemsService: SaveItemsService
+  ) {}
 
   @UserType(`${TypeEnum.EXPORTER}`)
   @UseGuards(AuthGuard, UserTypeGuard)
@@ -66,7 +70,12 @@ export class ProductsController {
   @ApiQuery({ name: 'minRating', required: false, type: Number, description: 'Minimum rating filter (0-5)' })
   @ApiQuery({ name: 'active', required: false, type: Boolean, description: 'Filter active products' })
   @ApiQuery({ name: 'categoryId', required: false, type: String, description: 'Filter by category ID' })
-  @ApiQuery({ name: 'currencyCode', required: false, type: String, description: 'Filter by currency code (e.g., USD, EGP)' })
+  @ApiQuery({
+    name: 'currencyCode',
+    required: false,
+    type: String,
+    description: 'Filter by currency code (e.g., USD, EGP)',
+  })
   @ApiQuery({
     name: 'sortBy',
     required: false,
@@ -98,11 +107,6 @@ export class ProductsController {
   @ApiResponse({ status: 200, description: 'Return all categories with product counts' })
   async getCategoriesWithCount() {
     return this.productsService.getCategoriesWithProductCount();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.productsService.findProductById(id);
   }
 
   @Patch(':id')
@@ -228,5 +232,45 @@ export class ProductsController {
       console.error('Error in remove endpoint:', error);
       throw error;
     }
+  }
+
+  @UseGuards(AuthGuard)
+  @Post(':id/save')
+  savePost(
+    @Req()
+    req: Request & {
+      user: { userId: string };
+    },
+    @Param('id') id: string
+  ) {
+    return this.saveItemsService.save('product', id, req.user.userId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete(':id/save')
+  unsavePost(
+    @Req()
+    req: Request & {
+      user: { userId: string };
+    },
+    @Param('id') id: string
+  ) {
+    return this.saveItemsService.unsave('product', id, req.user.userId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('saved')
+  getSavedPosts(
+    @Req()
+    req: Request & {
+      user: { userId: string };
+    }
+  ) {
+    return this.saveItemsService.getSaved('product', req.user.userId);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.productsService.findProductById(id);
   }
 }

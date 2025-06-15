@@ -7,10 +7,14 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
 import { PostTs } from './entities/post.entity';
+import { SaveItemsService } from '../save-items/save-items.service';
 
 @Controller('posts')
 export class PostsController {
-  constructor(private readonly postsService: PostsService) {}
+  constructor(
+    private readonly postsService: PostsService,
+    private saveItemsService: SaveItemsService
+  ) {}
 
   @UseGuards(AuthGuard)
   @Post()
@@ -38,25 +42,6 @@ export class PostsController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Posts not found' })
   findAll() {
     return this.postsService.findAll();
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('saved')
-  @ApiResponse({ status: HttpStatus.OK, description: 'Saved posts retrieved successfully' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please login to view saved posts' })
-  getSavedPosts(
-    @Req()
-    req: Request & { user: { userId: string } }
-  ) {
-    return this.postsService.getSavedPosts(req.user.userId);
-  }
-
-  @Get(':id')
-  @ApiResponse({ status: HttpStatus.OK, description: 'Post found successfully' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad request' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found' })
-  findOne(@Param('id') id: string) {
-    return this.postsService.findOne(id);
   }
 
   @UseGuards(AuthGuard)
@@ -91,36 +76,51 @@ export class PostsController {
     return this.postsService.remove(id, req.user.userId, req.user.role);
   }
 
+  @Get(':id/summary')
+  async getPost(@Param('id') id: string) {
+    return this.postsService.getPostSummery(id);
+  }
+
   @UseGuards(AuthGuard)
   @Post(':id/save')
-  @ApiResponse({ status: HttpStatus.OK, description: 'Post saved successfully' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad request' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please login to save a post' })
   savePost(
     @Req()
-    req: Request & { user: { userId: string } },
+    req: Request & {
+      user: { userId: string };
+    },
     @Param('id') id: string
   ) {
-    return this.postsService.savePost(id, req.user.userId);
+    return this.saveItemsService.save('post', id, req.user.userId);
   }
 
   @UseGuards(AuthGuard)
   @Delete(':id/save')
-  @ApiResponse({ status: HttpStatus.OK, description: 'Post unsaved successfully' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad request' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please login to unsave a post' })
   unsavePost(
     @Req()
-    req: Request & { user: { userId: string } },
+    req: Request & {
+      user: { userId: string };
+    },
     @Param('id') id: string
   ) {
-    return this.postsService.unsavePost(id, req.user.userId);
+    return this.saveItemsService.unsave('post', id, req.user.userId);
   }
 
-  @Get(':id/summary')
-  async getPost(@Param('id') id: string) {
-    return this.postsService.getPostSummery(id);
+  @UseGuards(AuthGuard)
+  @Get('saved')
+  getSavedPosts(
+    @Req()
+    req: Request & {
+      user: { userId: string };
+    }
+  ) {
+    return this.saveItemsService.getSaved('post', req.user.userId);
+  }
+
+  @Get(':id')
+  @ApiResponse({ status: HttpStatus.OK, description: 'Post found successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad request' })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found' })
+  findOne(@Param('id') id: string) {
+    return this.postsService.findOne(id);
   }
 }

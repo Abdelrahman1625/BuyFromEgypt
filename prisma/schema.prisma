@@ -48,11 +48,13 @@ model User {
   likedComments            CommentLike[]             @relation("UserLikes")
   otps                     Otp[]
   conversationParticipants ConversationParticipant[]
-  savedPosts               SavedPost[]               @relation("UserSavedPosts")
+  savedPosts               Post[]                    @relation("UserSavedPosts")
+  savedProducts            Product[]                 @relation("UserSavedProducts")
   socialLinks              SocialMedia[]             @relation(name: "UserSocialLinks")
   socialLinkId             String?
   ratings                  Rating[]
   searchHistory            SearchHistory[]
+  Product                  Product[]
 
   @@index([createdAt])
   @@index([role, active])
@@ -82,21 +84,21 @@ model Follower {
 }
 
 model Post {
-  postId      String      @id @default(uuid())
-  title       String
-  content     String
-  cloudFolder String
-  userId      String
-  user        User        @relation("UserPosts", fields: [userId], references: [userId])
-  comments    Comment[]
-  products    Product[]   @relation("PostProducts")
-  images      PostImage[] @relation("PostImages")
-  savedBy     SavedPost[] @relation("SavedPosts")
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  rating      Float?      @default(0.0)
-  reviewCount Int         @default(0)
-  Rating      Rating[]
+  postId       String      @id @default(uuid())
+  title        String
+  content      String
+  cloudFolder  String
+  userId       String
+  user         User        @relation("UserPosts", fields: [userId], references: [userId])
+  comments     Comment[]
+  products     Product[]   @relation("PostProducts")
+  images       PostImage[] @relation("PostImages")
+  savedByUsers User[]      @relation("UserSavedPosts")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  rating       Float?      @default(0.0)
+  reviewCount  Int         @default(0)
+  Rating       Rating[]
 
   @@index([userId])
 }
@@ -192,6 +194,9 @@ model Product {
   ratings        Rating[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+  User           User?           @relation(fields: [userUserId], references: [userId])
+  userUserId     String?
+  savedByUsers   User[]          @relation("UserSavedProducts")
 
   @@index([ownerId])
   @@index([categoryId])
@@ -307,18 +312,18 @@ model Category {
   @@index([name])
 }
 
-model SavedPost {
-  id        String   @id @default(uuid())
-  userId    String
-  postId    String
-  createdAt DateTime @default(now())
-  user      User     @relation("UserSavedPosts", fields: [userId], references: [userId])
-  post      Post     @relation("SavedPosts", fields: [postId], references: [postId])
-
-  @@unique([userId, postId])
-  @@index([userId])
-  @@index([postId])
-}
+// model SavedPost {
+//   id        String   @id @default(uuid())
+//   userId    String
+//   postId    String
+//   createdAt DateTime @default(now())
+//   user      User     @relation("UserSavedPosts", fields: [userId], references: [userId])
+//   post      Post     @relation("SavedPosts", fields: [postId], references: [postId])
+//
+//   @@unique([userId, postId])
+//   @@index([userId])
+//   @@index([postId])
+// }
 
 model SocialMedia {
   id        String   @id @default(uuid())

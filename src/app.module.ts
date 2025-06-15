@@ -16,6 +16,7 @@ import { ChatModule } from './chat/chat.module';
 import { SearchModule } from './search/search.module';
 import { SocialMediaModule } from './social-media/social-media.module';
 import { RatingModule } from './rating/rating.module';
+import { SaveItemsModule } from './save-items/save-items.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { RatingModule } from './rating/rating.module';
     SearchModule,
     SocialMediaModule,
     RatingModule,
+    SaveItemsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
