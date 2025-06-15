@@ -27,7 +27,7 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { UserTypeGuard } from '../common/guards/user-type.guard';
 import { UserType } from '../common/decorators/user-type.decorator';
 import { TypeEnum } from '../common/enums/user-type.enum';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RoleEnum } from '@prisma/client';
 import { RolesGuard } from '../common/guards/roles.guard';

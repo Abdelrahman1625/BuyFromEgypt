@@ -23,14 +23,12 @@ export class FilterService {
       };
     }
 
-    if (filters.inStock !== undefined) {
-      where.stock = {
-        gt: 0,
-      };
+    if (filters.available !== undefined) {
+      where.available = typeof filters.available === 'string' ? filters.available === 'true' : Boolean(filters.available);
     }
 
     if (filters.active !== undefined) {
-      where.active = filters.active;
+      where.active = typeof filters.active === 'string' ? filters.active === 'true' : Boolean(filters.active);
     }
 
     if (filters.categoryId) {

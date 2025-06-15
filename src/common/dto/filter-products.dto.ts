@@ -42,7 +42,7 @@ export class FilterProductsDto extends PaginationDto {
   @IsOptional()
   @Type(() => Boolean)
   @IsBoolean()
-  inStock?: boolean;
+  available?: boolean;
 
   @ApiProperty({ required: false, description: 'Filter active products' })
   @IsOptional()
