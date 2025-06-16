@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateUserForAdminDto } from './dto/update-user.dto';
@@ -8,13 +8,16 @@ import { MailService } from '../MailService/mail.service';
 import { User } from '@prisma/client';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfileResponse } from './interfaces/profile.interface';
+import { CloudinaryService, UploadedImageInfo } from '../common/modules/cloudinary/cloudinary.service';
+import * as process from 'process';
 
 @Injectable()
 export class UsersService {
   constructor(
     private prisma: PrismaService,
     private validationService: ValidationService,
-    private mailService: MailService
+    private mailService: MailService,
+    private cloudinaryService: CloudinaryService
   ) {}
 
   async findAll() {
@@ -70,12 +73,63 @@ export class UsersService {
     return { message: `User with ID ${userId} has been ${isActive ? 'approved' : 'deactivated'} successfully.` };
   }
 
-  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<User> {
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto, profileImage?: Express.Multer.File): Promise<User> {
     await this.validationService.validateUserExists(userId);
 
-    if (updateProfileDto.phoneNumber) {
+    const updateData: any = {};
+
+    if (profileImage) {
+      const user = await this.prisma.user.findUnique({ where: { userId } });
+      if (user && user.profileImage) {
+        // Extract public ID from the existing Cloudinary URL
+        const publicId = user.profileImage.split('/').pop()?.split('.')[0];
+        if (publicId) {
+          // Construct the full public ID including the folder path
+          const fullPublicId = `${process.env.SITE_NAME}/users/profile/${publicId}`;
+          await this.cloudinaryService.deleteImage(fullPublicId);
+        }
+      }
+      const uploadedImage: UploadedImageInfo = await this.cloudinaryService.uploadImage(profileImage, `${process.env.SITE_NAME}/users/profile`);
+      updateData.profileImage = uploadedImage.url;
+    }
+
+    if (updateProfileDto) {
+      if (updateProfileDto.name !== undefined) {
+        updateData.name = updateProfileDto.name;
+      }
+      if (updateProfileDto.phoneNumber !== undefined) {
+        updateData.phoneNumber = updateProfileDto.phoneNumber;
+      }
+      if (updateProfileDto.country !== undefined) {
+        updateData.country = updateProfileDto.country;
+      }
+      if (updateProfileDto.age !== undefined) {
+        updateData.age = updateProfileDto.age;
+      }
+      if (updateProfileDto.address !== undefined) {
+        updateData.address = updateProfileDto.address;
+      }
+      if (updateProfileDto.about !== undefined) {
+        updateData.about = updateProfileDto.about;
+      }
+      if ((updateProfileDto as any).registrationNumber !== undefined) {
+        updateData.registrationNumber = (updateProfileDto as any).registrationNumber;
+      }
+      if ((updateProfileDto as any).industrySector !== undefined) {
+        updateData.industrySector = (updateProfileDto as any).industrySector;
+      }
+      if ((updateProfileDto as any).commercial !== undefined) {
+        updateData.commercial = (updateProfileDto as any).commercial;
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      throw new BadRequestException('No update data provided');
+    }
+
+    if (updateData.phoneNumber) {
       const existingUser = await this.prisma.user.findUnique({
-        where: { phoneNumber: updateProfileDto.phoneNumber },
+        where: { phoneNumber: updateData.phoneNumber },
       });
       if (existingUser && existingUser.userId !== userId) {
         throw new ConflictException('Phone number is already taken');
@@ -84,7 +138,7 @@ export class UsersService {
 
     const updatedUser = await this.prisma.user.update({
       where: { userId },
-      data: updateProfileDto,
+      data: updateData,
     });
 
     return updatedUser;

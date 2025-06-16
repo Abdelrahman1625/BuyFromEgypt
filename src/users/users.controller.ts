@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Put, UseGuards, Req, Param, Delete, Patch, HttpStatus, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, UseGuards, Req, Param, Delete, Patch, HttpStatus, ForbiddenException, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ApiBody, ApiResponse, ApiParam } from '@nestjs/swagger';
@@ -12,13 +12,15 @@ import { UpdateUserForAdminDto } from './dto/update-user.dto';
 import { CommentLikesService } from 'src/comment-likes/comment-likes.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ProfileResponse } from './interfaces/profile.interface';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('users')
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
-    private commentLikesService: CommentLikesService
+    private readonly commentLikesService: CommentLikesService
   ) {}
+
   @Get('admin')
   @Roles(`${RoleEnum.ADMIN}`)
   @UseGuards(AuthGuard, RolesGuard)
@@ -28,6 +30,36 @@ export class UsersController {
   @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
   findAll() {
     return this.usersService.findAll();
+  }
+
+  @Get('profile')
+  @UseGuards(AuthGuard)
+  @ApiResponse({ status: HttpStatus.OK, description: 'User profile retrieved successfully' })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
+  async getUserProfile(@Req() req: Request & { user: { userId: string } }): Promise<ProfileResponse> {
+    return this.usersService.getUserProfile(req.user.userId);
+  }
+
+  @Put('profile')
+  @UseGuards(AuthGuard)
+  @Roles(`${RoleEnum.ADMIN}`, `${RoleEnum.USER}`)
+  @ApiResponse({ status: HttpStatus.OK, description: 'User updated successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
+  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
+  async updateUser(@Req() req: Request & { user: { userId: string } }, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.updateUser(req.user.userId, updateUserDto);
+  }
+
+  @Patch('profile')
+  @UseGuards(AuthGuard)
+  @UseInterceptors(FileInterceptor('profileImage'))
+  @ApiResponse({ status: HttpStatus.OK, description: 'Profile updated successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid input data' })
+  @ApiResponse({ status: HttpStatus.CONFLICT, description: 'Email or phone number already taken' })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Not authorized to update this profile' })
+  async updateProfile(@Req() req: Request & { user: { userId: string } }, @Body() updateProfileDto: UpdateProfileDto, @UploadedFile() profileImage?: Express.Multer.File): Promise<User> {
+    return this.usersService.updateProfile(req.user.userId, updateProfileDto, profileImage);
   }
 
   @Get(':id')
@@ -52,17 +84,6 @@ export class UsersController {
   create(@Body() createUserDto: CreateUserDto) {
     console.log(createUserDto);
     return this.usersService.createUser(createUserDto);
-  }
-
-  @Put('profile')
-  @UseGuards(AuthGuard)
-  @Roles(`${RoleEnum.ADMIN}`, `${RoleEnum.USER}`)
-  @ApiResponse({ status: HttpStatus.OK, description: 'User updated successfully' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request' })
-  @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal Server Error' })
-  @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please Login and try again' })
-  async updateUser(@Req() req: Request & { user: { userId: string } }, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.updateUser(req.user.userId, updateUserDto);
   }
 
   @Put('admin/:id')
@@ -119,33 +140,8 @@ export class UsersController {
     return this.usersService.deleteUser(userId);
   }
 
-  @Get(':userId/profile')
-  @UseGuards(AuthGuard)
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'User profile retrieved successfully' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'User not found' })
-  async getUserProfile(@Param('userId') userId: string): Promise<ProfileResponse> {
-    return this.usersService.getUserProfile(userId);
-  }
-
   @Get(':id/summary')
   async getUserSummary(@Param('id') userId: string) {
     return this.usersService.getUserSummary(userId);
   }
-
-  @Patch(':userId/profile')
-  @UseGuards(AuthGuard)
-  @ApiParam({ name: 'userId', description: 'User ID' })
-  @ApiResponse({ status: HttpStatus.OK, description: 'Profile updated successfully' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid input data' })
-  @ApiResponse({ status: HttpStatus.CONFLICT, description: 'Email or phone number already taken' })
-  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Not authorized to update this profile' })
-  async updateProfile(@Param('userId') userId: string, @Req() req: Request & { user: { userId: string } }, @Body() updateProfileDto: UpdateProfileDto): Promise<User> {
-    // Check if the user is trying to update their own profile
-    if (req.user.userId !== userId) {
-      throw new ForbiddenException('You can only update your own profile');
-    }
-    return this.usersService.updateProfile(userId, updateProfileDto);
-  }
-
 }

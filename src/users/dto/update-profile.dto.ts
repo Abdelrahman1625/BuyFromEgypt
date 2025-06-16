@@ -29,11 +29,6 @@ export class UpdateProfileDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsString()
-  profileImage?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
   @IsInt()
   @Min(18)
   @Max(100)

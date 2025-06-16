@@ -2,6 +2,11 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { v2 as cloudinary } from 'cloudinary';
 import { cloudinaryConstants } from '../../constants/cloudinary.constants';
 
+export interface UploadedImageInfo {
+  url: string;
+  id: string;
+}
+
 @Injectable()
 export class CloudinaryService implements OnModuleInit {
   constructor() {
@@ -26,7 +31,7 @@ export class CloudinaryService implements OnModuleInit {
     });
   }
 
-  async uploadImage(file: Express.Multer.File, folder: string) {
+  async uploadImage(file: Express.Multer.File, folder: string): Promise<UploadedImageInfo> {
     if (!file || !file.buffer) {
       throw new Error('Invalid file: File or file buffer is missing');
     }
@@ -71,7 +76,7 @@ export class CloudinaryService implements OnModuleInit {
     }
   }
 
-  async uploadImages(files: Express.Multer.File[], folder: string) {
+  async uploadImages(files: Express.Multer.File[], folder: string): Promise<UploadedImageInfo[]> {
     if (!files || !Array.isArray(files) || files.length === 0) {
       throw new Error('Invalid files: No files provided or invalid file array');
     }
@@ -92,25 +97,20 @@ export class CloudinaryService implements OnModuleInit {
     }
 
     try {
-      // First, try to delete all resources in the folder
       try {
         const result = await cloudinary.api.delete_resources_by_prefix(folder);
         console.log('Deleted resources result:', result);
       } catch (resourcesError: any) {
-        // If resources don't exist, that's fine
         if (resourcesError.http_code === 404) {
           console.log('No resources found in folder:', folder);
         } else {
           throw resourcesError;
         }
       }
-
-      // Then, try to delete the folder itself
       try {
         await cloudinary.api.delete_folder(folder);
         console.log('Successfully deleted folder:', folder);
       } catch (folderError: any) {
-        // If folder doesn't exist (404), that's fine
         if (folderError.http_code === 404) {
           console.log('Folder already deleted or does not exist:', folder);
           return;
@@ -120,7 +120,6 @@ export class CloudinaryService implements OnModuleInit {
     } catch (error: any) {
       console.error('Error in deleteFolder:', error);
 
-      // Handle specific Cloudinary errors
       if (error.http_code === 401) {
         throw new Error('Cloudinary authentication failed. Please check your credentials.');
       }
@@ -129,7 +128,6 @@ export class CloudinaryService implements OnModuleInit {
         throw new Error('Cloudinary access denied. Please check your permissions.');
       }
 
-      // For 404 errors, we consider it a success since the folder is already gone
       if (error.http_code === 404) {
         console.log('Folder or resources not found:', folder);
         return;
