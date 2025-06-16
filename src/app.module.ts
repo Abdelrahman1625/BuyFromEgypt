@@ -17,6 +17,7 @@ import { SearchModule } from './search/search.module';
 import { SocialMediaModule } from './social-media/social-media.module';
 import { RatingModule } from './rating/rating.module';
 import { SaveItemsModule } from './save-items/save-items.module';
+import { ChatbotModule } from './chatbot/chatbot.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { SaveItemsModule } from './save-items/save-items.module';
     SocialMediaModule,
     RatingModule,
     SaveItemsModule,
+    ChatbotModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

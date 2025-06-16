@@ -18,14 +18,15 @@ async function bootstrap() {
         enableImplicitConversion: true,
       },
       exceptionFactory: (errors) => {
-        const messages = errors.map((error) => ({
-          field: error.property,
-          message: error.constraints ? Object.values(error.constraints)[0] : 'Invalid value',
-        }));
+        if (errors.length > 0 && errors[0].constraints) {
+          return {
+            statusCode: 400,
+            message: Object.values(errors[0].constraints)[0],
+          };
+        }
         return {
           statusCode: 400,
           message: 'Validation failed',
-          errors: messages,
         };
       },
     })
