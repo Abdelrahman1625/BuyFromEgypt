@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Delete, HttpStatus, UseGuards, UseInterceptors, UploadedFiles, Req, Put } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Delete, HttpStatus, UseGuards, UseInterceptors, UploadedFiles, Req, Put, Patch } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -45,20 +45,21 @@ export class PostsController {
   }
 
   @UseGuards(AuthGuard)
-  @Put(':id')
+  @Patch(':id')
+  @UseInterceptors(FilesInterceptor('images', 10))
   @ApiResponse({ status: HttpStatus.OK, description: 'Post updated successfully' })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad request' })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Post not found' })
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Please login to update a post' })
   @ApiResponse({ status: HttpStatus.INTERNAL_SERVER_ERROR, description: 'Internal server error' })
   update(
+    @UploadedFiles() files: Express.Multer.File[],
     @Req()
     req: Request & { user: { userId: string } },
     @Param('id') id: string,
     @Body() updatePostDto: UpdatePostDto
   ) {
-    console.log(updatePostDto);
-    return this.postsService.update(id, req.user.userId, updatePostDto);
+    return this.postsService.update(id, req.user.userId, updatePostDto, files);
   }
 
   @UseGuards(AuthGuard)

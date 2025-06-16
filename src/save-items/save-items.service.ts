@@ -31,17 +31,19 @@ export class SaveItemsService {
 
     await this.validateEntityExists(entityType, entityId);
 
-    return this.prisma.user.update({
+    await this.prisma.user.update({
       where: { userId },
       data: {
         [this.getRelationField(entityType)]: {
           connect: { [`${entityType}Id`]: entityId },
         },
       },
-      include: {
-        [this.getRelationField(entityType)]: true,
-      },
     });
+
+    return {
+      success: true,
+      message: `${entityType === 'post' ? 'Post' : 'Product'} saved successfully`,
+    };
   }
 
   async unsave(entityType: SaveableEntity, entityId: string, userId: string) {
@@ -51,7 +53,7 @@ export class SaveItemsService {
 
     await this.validateEntityExists(entityType, entityId);
 
-    return this.prisma.user.update({
+    await this.prisma.user.update({
       where: { userId },
       data: {
         [this.getRelationField(entityType)]: {
@@ -59,6 +61,11 @@ export class SaveItemsService {
         },
       },
     });
+
+    return {
+      success: true,
+      message: `${entityType === 'post' ? 'Post' : 'Product'} removed from saved items successfully`,
+    };
   }
 
   async getSaved(entityType: SaveableEntity, userId: string) {

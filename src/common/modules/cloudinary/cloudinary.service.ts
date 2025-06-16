@@ -27,6 +27,10 @@ export class CloudinaryService implements OnModuleInit {
   }
 
   async uploadImage(file: Express.Multer.File, folder: string) {
+    if (!file || !file.buffer) {
+      throw new Error('Invalid file: File or file buffer is missing');
+    }
+
     try {
       return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
@@ -39,12 +43,22 @@ export class CloudinaryService implements OnModuleInit {
           (error, result) => {
             if (error) {
               console.error('Cloudinary upload error:', error);
-              reject(new Error(`Failed to upload image: ${error.message}`));
+              if (error.http_code === 401) {
+                reject(new Error('Cloudinary authentication failed. Please check your credentials.'));
+              } else if (error.http_code === 403) {
+                reject(new Error('Cloudinary access denied. Please check your permissions.'));
+              } else {
+                reject(new Error(`Failed to upload image: ${error.message}`));
+              }
+              return;
+            }
+            if (!result) {
+              reject(new Error('No result returned from Cloudinary upload'));
               return;
             }
             resolve({
-              url: result?.secure_url,
-              id: result?.public_id,
+              url: result.secure_url,
+              id: result.public_id,
             });
           }
         );
@@ -58,8 +72,13 @@ export class CloudinaryService implements OnModuleInit {
   }
 
   async uploadImages(files: Express.Multer.File[], folder: string) {
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      throw new Error('Invalid files: No files provided or invalid file array');
+    }
+
     try {
-      return await Promise.all(files.map((file) => this.uploadImage(file, folder)));
+      const uploadPromises = files.map((file) => this.uploadImage(file, folder));
+      return await Promise.all(uploadPromises);
     } catch (error) {
       console.error('Error in uploadImages:', error);
       throw new Error(`Failed to upload images: ${error.message}`);
@@ -96,7 +115,7 @@ export class CloudinaryService implements OnModuleInit {
           console.log('Folder already deleted or does not exist:', folder);
           return;
         }
-        throw folderError;  
+        throw folderError;
       }
     } catch (error: any) {
       console.error('Error in deleteFolder:', error);

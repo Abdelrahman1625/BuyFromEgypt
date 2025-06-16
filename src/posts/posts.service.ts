@@ -15,12 +15,16 @@ export class PostsService {
   ) {}
 
   async create(userId: string, createPostDto: CreatePostDto, files: Express.Multer.File[]): Promise<PostTs> {
+    const cloudFolder = `${process.env.SITE_NAME}/posts/${uuid()}`;
     try {
-      const cloudFolder = `${process.env.SITE_NAME}/posts/${uuid()}`;
       let uploadedImages;
 
       if (files && files.length > 0) {
-        uploadedImages = await this.cloudinaryService.uploadImages(files, cloudFolder);
+        try {
+          uploadedImages = await this.cloudinaryService.uploadImages(files, cloudFolder);
+        } catch (error) {
+          throw new Error(`Failed to upload images: ${error.message}`);
+        }
       }
 
       const productIds = Array.isArray(createPostDto.products) ? createPostDto.products : createPostDto.products ? [createPostDto.products] : [];
@@ -77,22 +81,72 @@ export class PostsService {
             },
           },
           images: true,
-          products: true,
+          products: {
+            select: {
+              productId: true,
+              name: true,
+              description: true,
+              price: true,
+              owner: {
+                select: {
+                  userId: true,
+                  name: true,
+                  email: true,
+                  role: true,
+                },
+              },
+            },
+          },
         },
       });
 
       return newPost;
     } catch (error) {
+      if (cloudFolder) {
+        try {
+          await this.cloudinaryService.deleteFolder(cloudFolder);
+        } catch (cleanupError) {
+          console.error('Failed to clean up cloud folder:', cleanupError);
+        }
+      }
+
       if (error instanceof NotFoundException) {
         throw error;
       }
-      throw new Error(`Failed to create post: ${error.message}`);
+
+      if (error.code === 'P2002') {
+        throw new Error(`A unique constraint would be violated: ${error.meta?.target}`);
+      }
+      if (error.code === 'P2025') {
+        throw new Error(`Record not found: ${error.meta?.cause}`);
+      }
+      if (error.code === 'P2011') {
+        throw new Error(`Null constraint violation: ${error.meta?.target}`);
+      }
+
+      throw new Error(error.message || 'Failed to create post');
     }
   }
 
   async findAll() {
     const posts = await this.prisma.post.findMany({
-      include: {},
+      include: {
+        user: {
+          select: {
+            userId: true,
+            name: true,
+          },
+        },
+        images: true,
+        products: {
+          select: {
+            productId: true,
+            name: true,
+            description: true,
+            price: true,
+          },
+        },
+      },
       orderBy: {
         createdAt: 'asc',
       },
@@ -101,70 +155,215 @@ export class PostsService {
   }
 
   async findOne(postId: string) {
-    const post = await this.prisma.post.findUnique({
-      where: { postId },
-      include: {},
-    });
+    try {
+      const post = await this.prisma.post.findUnique({
+        where: { postId },
+        include: {
+          user: {
+            select: {
+              userId: true,
+              name: true,
+            },
+          },
+          images: true,
+          products: {
+            select: {
+              productId: true,
+              name: true,
+              description: true,
+              price: true,
+            },
+          },
+        },
+      });
 
-    if (!post) {
-      throw new NotFoundException(`Post with ID ${postId} not found`);
+      if (!post) {
+        throw new NotFoundException(`Post with ID ${postId} not found`);
+      }
+
+      return post;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new Error(`Failed to fetch post: ${error.message}`);
     }
-
-    return post;
   }
 
-  async update(postId: string, userId: string, updatePostDto: UpdatePostDto) {
-    const post = await this.prisma.post.findUnique({
-      where: { postId },
-      include: { user: true, products: true },
-    });
+  async update(postId: string, userId: string, updatePostDto: UpdatePostDto, files?: Express.Multer.File[]) {
+    try {
+      const post = await this.prisma.post.findUnique({
+        where: { postId },
+        include: {
+          user: true,
+          products: {
+            select: {
+              productId: true,
+              name: true,
+              description: true,
+              price: true,
+            },
+          },
+          images: true,
+        },
+      });
 
-    if (!post) {
-      throw new NotFoundException(`Post with ID ${postId} not found`);
+      if (!post) {
+        throw new NotFoundException(`Post with ID ${postId} not found`);
+      }
+
+      if (post.userId !== userId) {
+        throw new ForbiddenException("You don't have permission to update this post");
+      }
+
+      if (files && files.length > 0 && post.images.length > 0) {
+        try {
+          for (const image of post.images) {
+            await this.cloudinaryService.deleteImage(image.id);
+          }
+          await this.prisma.postImage.deleteMany({
+            where: { postId },
+          });
+        } catch (error) {
+          throw new Error(`Failed to delete existing images: ${error.message}`);
+        }
+      }
+
+      let uploadedImages;
+      if (files && files.length > 0) {
+        try {
+          uploadedImages = await this.cloudinaryService.uploadImages(files, post.cloudFolder);
+        } catch (error) {
+          throw new Error(`Failed to upload images: ${error.message}`);
+        }
+      }
+
+      const updateData: any = {};
+
+      if (updatePostDto.title !== undefined) {
+        updateData.title = updatePostDto.title;
+      }
+      if (updatePostDto.content !== undefined) {
+        updateData.content = updatePostDto.content;
+      }
+
+      if (uploadedImages) {
+        updateData.images = {
+          create: uploadedImages.map((img: any) => ({
+            url: img.url,
+            id: img.id,
+          })),
+        };
+      }
+
+      const updatedPost = await this.prisma.post.update({
+        where: { postId },
+        data: updateData,
+        include: {
+          user: {
+            select: {
+              userId: true,
+              name: true,
+            },
+          },
+          images: true,
+          products: {
+            select: {
+              productId: true,
+              name: true,
+              description: true,
+              price: true,
+            },
+          },
+        },
+      });
+
+      return updatedPost;
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+        throw error;
+      }
+
+      if (error.code === 'P2002') {
+        throw new Error(`A unique constraint would be violated: ${error.meta?.target}`);
+      }
+      if (error.code === 'P2025') {
+        throw new Error(`Record not found: ${error.meta?.cause}`);
+      }
+      if (error.code === 'P2011') {
+        throw new Error(`Null constraint violation: ${error.meta?.target}`);
+      }
+
+      throw new Error(error.message || 'Failed to update post');
     }
-
-    if (post.userId !== userId) {
-      throw new ForbiddenException("You don't have permission to update this post");
-    }
-
-    console.log(updatePostDto);
-
-    const updatedPost = this.prisma.post.update({
-      where: { postId },
-      data: { title: updatePostDto.title, content: updatePostDto.content },
-    });
-    return updatedPost;
   }
 
   async remove(postId: string, userId: string, role: string): Promise<{ message: string }> {
-    const post = await this.prisma.post.findUnique({
-      where: { postId },
-    });
-
-    if (!post) {
-      throw new NotFoundException(`Post with ID ${postId} not found`);
-    }
-
-    if (post.userId !== userId && role !== RoleEnum.ADMIN) {
-      throw new ForbiddenException("You don't have permission to delete this post");
-    }
-
-    await this.prisma.$transaction([
-      this.prisma.commentLike.deleteMany({
-        where: {
-          comment: {
-            postId,
-          },
+    try {
+      const post = await this.prisma.post.findUnique({
+        where: { postId },
+        include: {
+          images: true,
         },
-      }),
-      this.prisma.comment.deleteMany({ where: { postId } }),
-      this.prisma.postImage.deleteMany({ where: { postId } }),
-      this.prisma.post.delete({ where: { postId } }),
-    ]);
+      });
 
-    return {
-      message: `Post with ID ${postId} has been deleted successfully.`,
-    };
+      if (!post) {
+        throw new NotFoundException(`Post with ID ${postId} not found`);
+      }
+
+      if (post.userId !== userId && role !== RoleEnum.ADMIN) {
+        throw new ForbiddenException("You don't have permission to delete this post");
+      }
+
+      if (post.images && post.images.length > 0) {
+        for (const image of post.images) {
+          try {
+            await this.cloudinaryService.deleteImage(image.id);
+          } catch (error) {
+            console.log(`Image ${image.id} not found in Cloudinary, continuing with deletion`);
+          }
+        }
+      }
+
+      if (post.cloudFolder) {
+        try {
+          await this.cloudinaryService.deleteFolder(post.cloudFolder);
+        } catch (error) {
+          console.log(`Folder ${post.cloudFolder} not found in Cloudinary, continuing with deletion`);
+        }
+      }
+
+      await this.prisma.$transaction(async (prisma) => {
+        await prisma.commentLike.deleteMany({
+          where: {
+            comment: {
+              postId,
+            },
+          },
+        });
+
+        await prisma.comment.deleteMany({
+          where: { postId },
+        });
+
+        await prisma.postImage.deleteMany({
+          where: { postId },
+        });
+
+        await prisma.post.delete({
+          where: { postId },
+        });
+      });
+
+      return {
+        message: `Post with ID ${postId} has been deleted successfully.`,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+        throw error;
+      }
+      throw new Error(`Failed to delete post: ${error.message}`);
+    }
   }
 
   async getPostSummery(postId: string) {

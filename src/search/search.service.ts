@@ -37,6 +37,7 @@ export class SearchService {
       select: {
         userId: true,
         name: true,
+        profileImage: true,
       },
     });
   }
@@ -50,6 +51,14 @@ export class SearchService {
       select: {
         productId: true,
         name: true,
+        images: {
+          where: {
+            isPrimary: true,
+          },
+          select: {
+            url: true,
+          },
+        },
       },
     });
   }
