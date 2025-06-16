@@ -210,6 +210,7 @@ model Product {
 model Rating {
   id        Int      @id @default(autoincrement())
   value     Int
+  comment   String?
   userId    String
   user      User     @relation(fields: [userId], references: [userId])
   postId    String?

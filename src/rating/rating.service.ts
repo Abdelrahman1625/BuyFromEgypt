@@ -9,6 +9,7 @@ interface RatingInput {
   userId: string;
   entityId: string;
   value: number;
+  comment: string;
 }
 
 @Injectable()
@@ -18,7 +19,7 @@ export class RatingService {
     private validationService: ValidationService
   ) {}
 
-  async rate(entityType: RateableEntity, { userId, entityId, value }: RatingInput) {
+  async rate(entityType: RateableEntity, { userId, entityId, value, comment }: RatingInput) {
     if (!RATEABLE_ENTITIES.includes(entityType)) throw new BadRequestException('Invalid entity type');
 
     if (entityType === 'post') await this.validationService.validatePostExists(entityId);
@@ -34,9 +35,13 @@ export class RatingService {
           [identifierField]: entityId,
         },
       } as any,
-      update: { value },
+      update: {
+        value,
+        comment,
+      },
       create: {
         value,
+        comment,
         userId,
         [identifierField]: entityId,
       },
@@ -69,6 +74,7 @@ export class RatingService {
     return {
       message: 'Rating updated successfully',
       averageRating: _avg.value ?? 0,
+      comment: comment,
       totalReviews: _count,
     };
   }

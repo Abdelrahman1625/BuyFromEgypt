@@ -22,6 +22,7 @@ export class RatingController {
       userId: req.user.userId,
       entityId,
       value: createRatingDto.value,
+      comment: createRatingDto.comment || '',
     });
   }
 }
