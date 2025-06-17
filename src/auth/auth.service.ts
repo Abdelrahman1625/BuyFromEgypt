@@ -191,7 +191,7 @@ export class AuthService {
     return { message: 'OTP verified successfully. Email has been verified.' };
   }
 
-  async verifyOtpAndSendResetLink(verifyOtpDto: VerifyOtpDto): Promise<{ message: string }> {
+  async verifyOtpAndSendResetLink(header: string, verifyOtpDto: VerifyOtpDto): Promise<{ message: string }> {
     const { identifier, otpCode } = verifyOtpDto;
 
     const user = await this.prisma.user.findFirst({
@@ -223,7 +223,12 @@ export class AuthService {
       },
     });
 
-    const resetLink = ` http://localhost:${process.env.PORT ?? 3000}/reset-password?token=${OTPGen}`;
+    let resetLink: string;
+    if (header === 'web') {
+      resetLink = `https://buy-from-egypt-frontend-2amd.vercel.app/auth/update-password?token=${OTPGen}`;
+    } else {
+      resetLink = `http://localhost:${process.env.PORT ?? 3000}/reset-password?token=${OTPGen}`;
+    }
 
     if (identifier.includes('@')) {
       await this.mailService.sendResetLink(user.email, resetLink);

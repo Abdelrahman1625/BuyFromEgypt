@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Get, Query } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Get, Query, Headers } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dtos/Register.dto';
 import { ApiBody, ApiQuery, ApiResponse } from '@nestjs/swagger';
@@ -73,8 +73,8 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Invalid or expired OTP',
   })
-  async verifyOtpAndSendResetLink(@Body() verifyOtpDto: VerifyOtpDto): Promise<{ message: string }> {
-    return this.authService.verifyOtpAndSendResetLink(verifyOtpDto);
+  async verifyOtpAndSendResetLink(@Headers('User-Agent') header: string, @Body() verifyOtpDto: VerifyOtpDto): Promise<{ message: string }> {
+    return this.authService.verifyOtpAndSendResetLink(header, verifyOtpDto);
   }
 
   @HttpCode(HttpStatus.OK)
