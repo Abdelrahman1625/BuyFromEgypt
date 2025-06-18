@@ -78,6 +78,7 @@ export class PostsService {
               email: true,
               role: true,
               isOnline: true,
+              profileImage: true,
             },
           },
           images: true,
@@ -135,6 +136,7 @@ export class PostsService {
           select: {
             userId: true,
             name: true,
+            profileImage: true,
           },
         },
         images: true,
@@ -146,12 +148,22 @@ export class PostsService {
             price: true,
           },
         },
+        comments: {
+          select: {
+            commentId: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'asc',
+        createdAt: 'desc',
       },
     });
-    return posts;
+
+    return posts.map((post) => ({
+      ...post,
+      comments_count: post.comments.length,
+      comments: undefined,
+    }));
   }
 
   async findOne(postId: string) {
@@ -163,6 +175,7 @@ export class PostsService {
             select: {
               userId: true,
               name: true,
+              profileImage: true,
             },
           },
           images: true,
@@ -174,6 +187,11 @@ export class PostsService {
               price: true,
             },
           },
+          comments: {
+            select: {
+              commentId: true,
+            },
+          },
         },
       });
 
@@ -181,7 +199,11 @@ export class PostsService {
         throw new NotFoundException(`Post with ID ${postId} not found`);
       }
 
-      return post;
+      return {
+        ...post,
+        comments_count: post.comments.length,
+        comments: undefined,
+      };
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
@@ -195,7 +217,13 @@ export class PostsService {
       const post = await this.prisma.post.findUnique({
         where: { postId },
         include: {
-          user: true,
+          user: {
+            select: {
+              userId: true,
+              name: true,
+              profileImage: true,
+            },
+          },
           products: {
             select: {
               productId: true,
