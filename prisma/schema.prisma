@@ -55,6 +55,7 @@ model User {
   ratings                  Rating[]
   searchHistory            SearchHistory[]
   Product                  Product[]
+  recommendationSystem     UserPreference[]
 
   @@index([createdAt])
   @@index([role, active])
@@ -350,6 +351,17 @@ model SearchHistory {
 
   @@index([userId])
   @@index([createdAt])
+}
+
+model UserPreference {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  industries     String[]
+  supplierType   String?
+  orderQuantity  String?
+  shippingMethod String?
+  receiveAlerts  Boolean  @default(false)
+  user           User     @relation(fields: [userId], references: [userId])
 }
 
 enum RoleEnum {

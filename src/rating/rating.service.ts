@@ -55,6 +55,14 @@ export class RatingService {
       _count: true,
     });
 
+    const userRating = await this.prisma.rating.findFirst({
+      where: {
+        userId,
+        [identifierField]: entityId,
+      },
+      select: { value: true },
+    });
+
     const updateData = {
       rating: _avg.value ?? 0,
       reviewCount: _count,
@@ -76,6 +84,84 @@ export class RatingService {
       averageRating: _avg.value ?? 0,
       comment: comment,
       totalReviews: _count,
+      userRating: userRating?.value ?? null,
     };
+  }
+
+  async getEntityRating(entityType: RateableEntity, entityId: string, userId: string) {
+    if (!RATEABLE_ENTITIES.includes(entityType)) throw new BadRequestException('Invalid entity type');
+
+    const identifierField = `${entityType}Id`;
+
+    const { _avg, _count } = await this.prisma.rating.aggregate({
+      where: {
+        [identifierField]: entityId,
+      },
+      _avg: { value: true },
+      _count: true,
+    });
+
+    const userRating = await this.prisma.rating.findFirst({
+      where: {
+        userId,
+        [identifierField]: entityId,
+      },
+      select: {
+        value: true,
+        comment: true,
+        createdAt: true,
+        user: {
+          select: {
+            name: true,
+            profileImage: true,
+          },
+        },
+      },
+    });
+
+    return {
+      message: 'Rating fetched successfully',
+      averageRating: _avg.value ?? 0,
+      comment: userRating?.comment ?? null,
+      totalReviews: _count,
+      userRating: userRating?.value ?? null,
+      user: userRating?.user ?? null,
+      createdAt: userRating?.createdAt ?? null,
+    };
+  }
+
+  async getAllRatings(entityType: RateableEntity, entityId: string) {
+    if (!RATEABLE_ENTITIES.includes(entityType)) throw new BadRequestException('Invalid entity type');
+    const identifierField = `${entityType}Id`;
+    const ratings = await this.prisma.rating.findMany({
+      where: {
+        [identifierField]: entityId,
+      },
+      select: {
+        value: true,
+        comment: true,
+        createdAt: true,
+        user: {
+          select: {
+            name: true,
+            profileImage: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const { _avg, _count } = await this.prisma.rating.aggregate({
+      where: { [identifierField]: entityId },
+      _avg: { value: true },
+      _count: true,
+    });
+    return ratings.map((rating) => ({
+      averageRating: _avg.value ?? 0,
+      totalReviews: _count,
+      userRating: rating.value,
+      comment: rating.comment,
+      user: rating.user,
+      createdAt: rating.createdAt,
+    }));
   }
 }

@@ -6,6 +6,8 @@ import { CloudinaryService } from '../common/modules/cloudinary/cloudinary.servi
 import { v4 as uuid } from 'uuid';
 import { PostTs } from './entities/post.entity';
 import { RoleEnum } from '../common/enums/role.enum';
+import { PaginatedResponse } from '../common/interfaces/pagination.interface';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class PostsService {
@@ -129,41 +131,78 @@ export class PostsService {
     }
   }
 
-  async findAll() {
-    const posts = await this.prisma.post.findMany({
-      include: {
-        user: {
-          select: {
-            userId: true,
-            name: true,
-            profileImage: true,
-          },
-        },
-        images: true,
-        products: {
-          select: {
-            productId: true,
-            name: true,
-            description: true,
-            price: true,
-          },
-        },
-        comments: {
-          select: {
-            commentId: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+  async findAll(paginationDto: PaginationDto): Promise<PaginatedResponse<PostTs>> {
+    try {
+      const page = Number(paginationDto.page) || 1;
+      const limit = Number(paginationDto.limit) || 10;
+      const skip = (page - 1) * limit;
 
-    return posts.map((post) => ({
-      ...post,
-      comments_count: post.comments.length,
-      comments: undefined,
-    }));
+      const [posts, total] = await Promise.all([
+        this.prisma.post.findMany({
+          skip,
+          take: limit,
+          include: {
+            user: {
+              select: {
+                userId: true,
+                name: true,
+                profileImage: true,
+              },
+            },
+            images: true,
+            products: {
+              select: {
+                productId: true,
+                name: true,
+                description: true,
+                price: true,
+                owner: {
+                  select: {
+                    userId: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+            comments: {
+              select: {
+                commentId: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        }),
+        this.prisma.post.count(),
+      ]);
+
+      const mappedPosts = posts.map((post) => ({
+        ...post,
+        comments_count: post.comments.length,
+        comments: undefined,
+      }));
+
+      return {
+        data: mappedPosts,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          NextPage: page < Math.ceil(total / limit),
+          PreviousPage: page > 1,
+        },
+      };
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new Error(`A unique constraint would be violated: ${error.meta?.target}`);
+      }
+      if (error.code === 'P2025') {
+        throw new Error(`Record not found: ${error.meta?.cause}`);
+      }
+      throw new Error(`Failed to fetch posts: ${error.message}`);
+    }
   }
 
   async findOne(postId: string) {

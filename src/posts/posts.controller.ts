@@ -1,13 +1,14 @@
-import { Controller, Post, Body, Get, Param, Delete, HttpStatus, UseGuards, UseInterceptors, UploadedFiles, Req, Put, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Delete, HttpStatus, UseGuards, UseInterceptors, UploadedFiles, Req, Put, Patch, Query } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { ApiResponse } from '@nestjs/swagger';
+import { ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Request } from 'express';
 import { PostTs } from './entities/post.entity';
 import { SaveItemsService } from '../save-items/save-items.service';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('posts')
 export class PostsController {
@@ -40,8 +41,10 @@ export class PostsController {
   @ApiResponse({ status: HttpStatus.OK, description: 'Posts found successfully' })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad request' })
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Posts not found' })
-  findAll() {
-    return this.postsService.findAll();
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (starts from 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of items per page' })
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.postsService.findAll(paginationDto);
   }
 
   @UseGuards(AuthGuard)

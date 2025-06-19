@@ -8,6 +8,6 @@ import { SaveItemsService } from '../save-items/save-items.service';
 @Module({
   imports: [CloudinaryModule],
   controllers: [PostsController],
-  providers: [PostsService, PrismaService,SaveItemsService],
+  providers: [PostsService, PrismaService, SaveItemsService],
 })
 export class PostsModule {}

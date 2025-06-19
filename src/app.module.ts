@@ -18,6 +18,11 @@ import { SocialMediaModule } from './social-media/social-media.module';
 import { RatingModule } from './rating/rating.module';
 import { SaveItemsModule } from './save-items/save-items.module';
 import { ChatbotModule } from './chatbot/chatbot.module';
+import { RecommendationModule } from './recommendation/recommendation.module';
+import { UserPreferenceModule } from './user-preference/user-preference.module';
+import { EgyptianEconomicContextModule } from './egyptian-economic-context/egyptian-economic-context.module';
+import { SyncModule } from './sync/sync.module';
+import { ExportModule } from './export/export.module';
 
 @Module({
   imports: [
@@ -37,6 +42,11 @@ import { ChatbotModule } from './chatbot/chatbot.module';
     RatingModule,
     SaveItemsModule,
     ChatbotModule,
+    RecommendationModule,
+    UserPreferenceModule,
+    EgyptianEconomicContextModule,
+    SyncModule,
+    ExportModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

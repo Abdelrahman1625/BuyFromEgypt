@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Param, Body, UseGuards, Req, HttpCode, HttpStatus, Put } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Param, Body, UseGuards, Req, HttpCode, HttpStatus, Put, Query } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -7,6 +7,8 @@ import { AuthGuard } from '../auth/guards/auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RoleEnum } from '../common/enums/role.enum';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { ApiResponse, ApiQuery } from '@nestjs/swagger';
 
 @Controller('categories')
 export class CategoriesController {
@@ -20,8 +22,13 @@ export class CategoriesController {
   }
 
   @Get()
-  async findAll() {
-    return this.categoriesService.findAll();
+  @ApiResponse({ status: HttpStatus.OK, description: 'Categories found successfully' })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad request' })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Categories not found' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (starts from 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Number of items per page' })
+  findAll(@Query() paginationDto: PaginationDto) {
+    return this.categoriesService.findAll(paginationDto);
   }
 
   @Get(':id')

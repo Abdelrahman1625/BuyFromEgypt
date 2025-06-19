@@ -1,9 +1,11 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { Category } from './entities/category.entity';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CloudinaryService } from '../common/modules/cloudinary/cloudinary.service';
+import { PaginatedResponse } from '../common/interfaces/pagination.interface';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Injectable()
 export class CategoriesService {
@@ -33,17 +35,48 @@ export class CategoriesService {
     return category;
   }
 
-  async findAll(): Promise<Category[]> {
-    return this.prisma.category.findMany({
-      include: {
-        user: {
-          select: { userId: true, name: true, email: true, role: true, type: true, active: true },
+  async findAll(paginationDto: PaginationDto): Promise<PaginatedResponse<Category>> {
+    try {
+      const page = Number(paginationDto.page) || 1;
+      const limit = Number(paginationDto.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      const [categories, total] = await Promise.all([
+        this.prisma.category.findMany({
+          skip,
+          take: limit,
+          include: {
+            user: {
+              select: { userId: true, name: true, email: true, role: true, type: true, active: true },
+            },
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        }),
+        this.prisma.category.count(),
+      ]);
+
+      return {
+        data: categories,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages: Math.ceil(total / limit),
+          NextPage: page < Math.ceil(total / limit),
+          PreviousPage: page > 1,
         },
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
+      };
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new Error(`A unique constraint would be violated: ${error.meta?.target}`);
+      }
+      if (error.code === 'P2025') {
+        throw new Error(`Record not found: ${error.meta?.cause}`);
+      }
+      throw new Error(`Failed to fetch categories: ${error.message}`);
+    }
   }
 
   async findOne(categoryId: string): Promise<Category> {
