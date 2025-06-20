@@ -31,7 +31,14 @@ export class FollowService {
         where: { followerId_followingId: { followerId, followingId } },
       });
 
-      // Optional: Send unfollow notification or remove existing one
+      await this.prisma.notification.deleteMany({
+        where: {
+          type: NotificationType.FOLLOW_USER,
+          senderId: followerId,
+          recipientId: followingId,
+        },
+      });
+
       return {
         message: `User ${followerId} has unfollowed user ${followingId}.`,
       };
@@ -71,7 +78,6 @@ export class FollowService {
         follows.map((follow) => ({
           id: follow.followId,
           follower: follow.follower,
-          following: follow.following,
           createdAt: follow.createdAt,
         }))
       );
@@ -87,7 +93,6 @@ export class FollowService {
       .then((follows) =>
         follows.map((follow) => ({
           id: follow.followId,
-          follower: follow.follower,
           following: follow.following,
           createdAt: follow.createdAt,
         }))

@@ -16,6 +16,13 @@ export class NotificationService {
     const template = NotificationTemplates[type];
     if (!template) throw new Error(`Unknown notification type: ${type}`);
 
+    const sender = await this.prisma.user.findUnique({
+      where: { userId: senderId },
+      select: { name: true },
+    });
+
+    data.senderName = sender?.name ?? 'Someone';
+    console.log(data.senderName);
     const message = template.getMessage(data);
 
     const notification = await this.prisma.notification.create({

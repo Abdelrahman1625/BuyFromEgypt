@@ -81,10 +81,8 @@ export class UsersService {
     if (profileImage) {
       const user = await this.prisma.user.findUnique({ where: { userId } });
       if (user && user.profileImage) {
-        // Extract public ID from the existing Cloudinary URL
         const publicId = user.profileImage.split('/').pop()?.split('.')[0];
         if (publicId) {
-          // Construct the full public ID including the folder path
           const fullPublicId = `${process.env.SITE_NAME}/users/profile/${publicId}`;
           await this.cloudinaryService.deleteImage(fullPublicId);
         }
@@ -174,6 +172,7 @@ export class UsersService {
             createdAt: 'desc',
           },
         },
+        categories: true,
         products: {
           select: {
             productId: true,
@@ -181,15 +180,16 @@ export class UsersService {
             price: true,
             currencyCode: true,
             images: true,
+            rating: true,
+            reviewCount: true,
           },
           take: 5,
-          // where: {
-          //   active: true,
-          // },
           orderBy: {
             createdAt: 'desc',
           },
         },
+        followers: true,
+        following: true,
       },
     });
 
@@ -197,7 +197,12 @@ export class UsersService {
       throw new NotFoundException(`User with ID '${userId}' not found.`);
     }
 
-    return user;
+    return {
+      ...user,
+      followersCount: user.followers.length,
+      followingCount: user.following.length,
+      postsCount: user.posts.length,
+    };
   }
 
   async getUserSummary(userId: string) {

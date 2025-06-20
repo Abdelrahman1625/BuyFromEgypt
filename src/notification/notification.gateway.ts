@@ -2,10 +2,8 @@ import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayInit }
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 
-@WebSocketGateway({
-  cors: true,
-  namespace: '/notification',
-})
+@WebSocketGateway({ namespace: '/notification', cors: true })
+
 export class NotificationGateway implements OnGatewayConnection, OnGatewayInit {
   @WebSocketServer()
   server: Server;

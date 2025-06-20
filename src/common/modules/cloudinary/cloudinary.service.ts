@@ -107,6 +107,7 @@ export class CloudinaryService implements OnModuleInit {
           throw resourcesError;
         }
       }
+
       try {
         await cloudinary.api.delete_folder(folder);
         console.log('Successfully deleted folder:', folder);

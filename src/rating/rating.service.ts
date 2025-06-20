@@ -1,6 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ValidationService } from '../common/validation/validation.service';
+import { NotificationType } from '../common/enums/Notification.enum';
+import { NotificationService } from '../notification/notification.service';
 
 const RATEABLE_ENTITIES = ['post', 'product'] as const;
 export type RateableEntity = (typeof RATEABLE_ENTITIES)[number];
@@ -16,96 +18,99 @@ interface RatingInput {
 export class RatingService {
   constructor(
     private prisma: PrismaService,
+    private notificationService: NotificationService,
     private validationService: ValidationService
   ) {}
 
-  async rate(entityType: RateableEntity, { userId, entityId, value, comment }: RatingInput) {
-    if (!RATEABLE_ENTITIES.includes(entityType)) throw new BadRequestException('Invalid entity type');
+  private getIdField(entityType: RateableEntity): 'postId' | 'productId' {
+    return `${entityType}Id` as const;
+  }
 
-    if (entityType === 'post') await this.validationService.validatePostExists(entityId);
-    else await this.validationService.validateProductExists(entityId);
+  private async validateEntity(entityType: RateableEntity, entityId: string) {
+    const methodName = `validate${entityType.charAt(0).toUpperCase() + entityType.slice(1)}Exists`;
+    if (typeof this.validationService[methodName] !== 'function') {
+      throw new BadRequestException('Invalid entity type');
+    }
+    await this.validationService[methodName](entityId);
+  }
 
-    const identifierField = `${entityType}Id`;
-    const uniqueConstraint = `userId_${identifierField}`;
-
-    await this.prisma.rating.upsert({
-      where: {
-        [uniqueConstraint]: {
-          userId,
-          [identifierField]: entityId,
-        },
-      } as any,
-      update: {
-        value,
-        comment,
-      },
-      create: {
-        value,
-        comment,
-        userId,
-        [identifierField]: entityId,
-      },
-    });
-
-    const { _avg, _count } = await this.prisma.rating.aggregate({
-      where: {
-        [identifierField]: entityId,
-      },
+  private async getRatingAggregate(idField: string, entityId: string) {
+    return this.prisma.rating.aggregate({
+      where: { [idField]: entityId },
       _avg: { value: true },
       _count: true,
     });
+  }
 
-    const userRating = await this.prisma.rating.findFirst({
-      where: {
-        userId,
-        [identifierField]: entityId,
-      },
-      select: { value: true },
+  async rate(entityType: RateableEntity, { userId, entityId, value, comment }: RatingInput) {
+    if (!RATEABLE_ENTITIES.includes(entityType)) throw new BadRequestException('Invalid entity type');
+    await this.validateEntity(entityType, entityId);
+
+    const idField = this.getIdField(entityType);
+    const uniqueWhere = { [`userId_${idField}`]: { userId, [idField]: entityId } };
+
+    await this.prisma.rating.upsert({
+      where: uniqueWhere as any,
+      update: { value, comment },
+      create: { value, comment, userId, [idField]: entityId },
     });
 
-    const updateData = {
-      rating: _avg.value ?? 0,
-      reviewCount: _count,
-    };
+    const { _avg, _count } = await this.getRatingAggregate(idField, entityId);
+
+    let recipientId: string;
 
     if (entityType === 'post') {
-      await this.prisma.post.update({
+      const updatedPost = await this.prisma.post.update({
         where: { postId: entityId },
-        data: updateData,
+        data: {
+          rating: _avg.value ?? 0,
+          reviewCount: _count,
+        },
+        include: { user: true },
       });
+      recipientId = updatedPost.user.userId;
     } else {
-      await this.prisma.product.update({
+      const updatedProduct = await this.prisma.product.update({
         where: { productId: entityId },
-        data: updateData,
+        data: {
+          rating: _avg.value ?? 0,
+          reviewCount: _count,
+        },
+        include: { owner: true },
       });
+      recipientId = updatedProduct.owner.userId;
     }
+
+    await this.prisma.notification.deleteMany({
+      where: { type: NotificationType.RATE_POST, senderId: userId, recipientId },
+    });
+
+    await this.notificationService.createAndSend({
+      type: NotificationType.RATE_POST,
+      senderId: userId,
+      recipientId,
+      data: {
+        rating: value,
+      },
+    });
+
     return {
       message: 'Rating updated successfully',
       averageRating: _avg.value ?? 0,
-      comment: comment,
       totalReviews: _count,
-      userRating: userRating?.value ?? null,
+      userRating: value,
+      comment,
     };
   }
 
   async getEntityRating(entityType: RateableEntity, entityId: string, userId: string) {
     if (!RATEABLE_ENTITIES.includes(entityType)) throw new BadRequestException('Invalid entity type');
+    const idField = this.getIdField(entityType);
 
-    const identifierField = `${entityType}Id`;
-
-    const { _avg, _count } = await this.prisma.rating.aggregate({
-      where: {
-        [identifierField]: entityId,
-      },
-      _avg: { value: true },
-      _count: true,
-    });
+    const { _avg, _count } = await this.getRatingAggregate(idField, entityId);
 
     const userRating = await this.prisma.rating.findFirst({
-      where: {
-        userId,
-        [identifierField]: entityId,
-      },
+      where: { userId, [idField]: entityId },
       select: {
         value: true,
         comment: true,
@@ -122,46 +127,44 @@ export class RatingService {
     return {
       message: 'Rating fetched successfully',
       averageRating: _avg.value ?? 0,
-      comment: userRating?.comment ?? null,
       totalReviews: _count,
       userRating: userRating?.value ?? null,
-      user: userRating?.user ?? null,
+      comment: userRating?.comment ?? null,
       createdAt: userRating?.createdAt ?? null,
+      user: userRating?.user ?? null,
     };
   }
 
   async getAllRatings(entityType: RateableEntity, entityId: string) {
     if (!RATEABLE_ENTITIES.includes(entityType)) throw new BadRequestException('Invalid entity type');
-    const identifierField = `${entityType}Id`;
-    const ratings = await this.prisma.rating.findMany({
-      where: {
-        [identifierField]: entityId,
-      },
-      select: {
-        value: true,
-        comment: true,
-        createdAt: true,
-        user: {
-          select: {
-            name: true,
-            profileImage: true,
+    const idField = this.getIdField(entityType);
+
+    const [ratings, { _avg, _count }] = await Promise.all([
+      this.prisma.rating.findMany({
+        where: { [idField]: entityId },
+        select: {
+          value: true,
+          comment: true,
+          createdAt: true,
+          user: {
+            select: {
+              name: true,
+              profileImage: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    const { _avg, _count } = await this.prisma.rating.aggregate({
-      where: { [identifierField]: entityId },
-      _avg: { value: true },
-      _count: true,
-    });
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.getRatingAggregate(idField, entityId),
+    ]);
+
     return ratings.map((rating) => ({
       averageRating: _avg.value ?? 0,
       totalReviews: _count,
       userRating: rating.value,
       comment: rating.comment,
-      user: rating.user,
       createdAt: rating.createdAt,
+      user: rating.user,
     }));
   }
 }

@@ -4,16 +4,28 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { Comment } from './entities/comment.entity';
 import { RoleEnum } from '../common/enums/role.enum';
+import { NotificationService } from '../notification/notification.service';
+import { NotificationType } from '../common/enums/Notification.enum';
 
 @Injectable()
 export class CommentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationService: NotificationService
+  ) {}
 
   async create(userId: string, createCommentDto: CreateCommentDto): Promise<Comment> {
     const { content, postId } = createCommentDto;
 
     const post = await this.prisma.post.findUnique({
       where: { postId },
+      include: {
+        user: {
+          select: {
+            userId: true,
+          },
+        },
+      },
     });
 
     if (!post) {
@@ -35,6 +47,13 @@ export class CommentsService {
           },
         },
       },
+    });
+
+    await this.notificationService.createAndSend({
+      type: NotificationType.COMMENT_POST,
+      senderId: userId,
+      recipientId: post.user.userId,
+      data: {},
     });
 
     return comment;
