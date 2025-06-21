@@ -69,4 +69,9 @@ export class FilterProductsDto extends PaginationDto {
   @IsOptional()
   @IsEnum(SortOrder)
   sortOrder?: SortOrder;
+
+  @ApiProperty({ required: false, description: 'User ID for recommendations' })
+  @IsOptional()
+  @IsString()
+  userId?: string;
 }

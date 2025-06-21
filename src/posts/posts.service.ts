@@ -8,12 +8,15 @@ import { PostTs } from './entities/post.entity';
 import { RoleEnum } from '../common/enums/role.enum';
 import { PaginatedResponse } from '../common/interfaces/pagination.interface';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class PostsService {
   constructor(
     private prisma: PrismaService,
-    private cloudinaryService: CloudinaryService
+    private cloudinaryService: CloudinaryService,
+    private readonly httpService: HttpService
   ) {}
 
   async create(userId: string, createPostDto: CreatePostDto, files: Express.Multer.File[]): Promise<PostTs> {
@@ -136,6 +139,28 @@ export class PostsService {
       const page = Number(paginationDto.page) || 1;
       const limit = Number(paginationDto.limit) || 10;
       const skip = (page - 1) * limit;
+
+      const userId = paginationDto && (paginationDto as any).userId ? (paginationDto as any).userId : undefined;
+      if (userId && process.env.CHATBOT_API_URL) {
+        try {
+          const url = `${process.env.CHATBOT_API_URL}/api/v1/recommendation/posts?user_id=${userId}`;
+          const { data } = await firstValueFrom(this.httpService.post(url, paginationDto));
+          if (data && data.data && data.data.recommendations) {
+            const paginated = data.data.recommendations.slice(skip, skip + limit);
+            return {
+              data: paginated,
+              meta: {
+                total: data.data.recommendations.length,
+                page,
+                limit,
+                totalPages: Math.ceil(data.data.recommendations.length / limit),
+                NextPage: page < Math.ceil(data.data.recommendations.length / limit),
+                PreviousPage: page > 1,
+              },
+            };
+          }
+        } catch (err) {}
+      }
 
       const [posts, total] = await Promise.all([
         this.prisma.post.findMany({

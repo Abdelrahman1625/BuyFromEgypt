@@ -115,9 +115,10 @@ export class PostsController {
     @Req()
     req: Request & {
       user: { userId: string };
-    }
+    },
+    @Query() paginationDto: PaginationDto
   ) {
-    return this.saveItemsService.getSaved('post', req.user.userId);
+    return this.saveItemsService.getSaved('post', req.user.userId, paginationDto);
   }
 
   @Get(':id')

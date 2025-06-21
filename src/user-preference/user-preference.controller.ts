@@ -4,15 +4,15 @@ import { UserPreferenceDto } from './dto/user-preference.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
 
 @Controller('user-preference')
-@UseGuards(AuthGuard)
 export class UserPreferenceController {
   constructor(private readonly userPreferenceService: UserPreferenceService) {}
 
   @Post()
   async upsert(@Req() req, @Body() dto: UserPreferenceDto) {
-    return this.userPreferenceService.upsertPreference(req.user.userId, dto);
+    return this.userPreferenceService.upsertPreference(dto);
   }
 
+  @UseGuards(AuthGuard)
   @Get('me')
   async getMine(@Req() req) {
     return this.userPreferenceService.getMyPreference(req.user.userId);

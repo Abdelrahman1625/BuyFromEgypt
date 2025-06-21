@@ -43,14 +43,4 @@ export class ChatController {
     const user = await this.chatService.getUserById(userId);
     return { userId, isOnline: user?.isOnline ?? false };
   }
-
-  @Post('createConversation')
-  async createConversation(@Body('participantIds') ids: string[], @Body('name') name?: string) {
-    return this.chatService.createConversation(ids, name);
-  }
-
-  @Patch('renameConversation/:id')
-  async renameConversation(@Param('id') conversationId: string, @Body('name') name: string) {
-    return this.chatService.renameConversation(conversationId, name);
-  }
 }

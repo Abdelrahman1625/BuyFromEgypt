@@ -30,6 +30,13 @@ export class SyncController {
   async syncOrder(@Body() body: SyncOrderData) {
     return this.syncService.syncOrder(body);
   }
+
+  @Post('all')
+  @ApiOperation({ summary: 'Synchronize all data (users, products, orders) with the ML server' })
+  @ApiResponse({ status: 200, description: 'All data synced successfully' })
+  async syncAllData() {
+    return this.syncService.syncAllData();
+  }
 }
 
 @ApiTags('Admin')

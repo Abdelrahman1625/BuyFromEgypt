@@ -8,37 +8,6 @@ import { ConversationType } from '@prisma/client';
 export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createConversation(participantIds: string[], name?: string) {
-    if (participantIds.length < 3) {
-      throw new BadRequestException('Group must have at least 3 participants');
-    }
-
-    const users = await this.prisma.user.findMany({
-      where: { userId: { in: participantIds } },
-      select: { userId: true },
-    });
-    const existingUserIds = users.map((user) => user.userId);
-    const invalidUserIds = participantIds.filter((id) => !existingUserIds.includes(id));
-
-    if (invalidUserIds.length > 0) {
-      throw new BadRequestException(`Invalid user IDs: ${invalidUserIds.join(', ')}`);
-    }
-
-    const conversation = await this.prisma.conversation.create({
-      data: {
-        name: name || undefined,
-        type: ConversationType.GROUP,
-        participants: { create: participantIds.map((userId) => ({ userId })) },
-      },
-      include: { participants: true },
-    });
-    return {
-      conversationId: conversation.id,
-      name: conversation.name,
-      participants: conversation.participants.map((p) => p.userId),
-    };
-  }
-
   async getOrCreatePrivateConversation(userId1: string, userId2: string) {
     const users = await this.prisma.user.findMany({
       where: { userId: { in: [userId1, userId2] } },
@@ -81,25 +50,12 @@ export class ChatService {
     return newConversation;
   }
 
-  async createGroupConversation(userIds: string[], name?: string) {
-    const newConversation = await this.prisma.conversation.create({
-      data: {
-        name: name || undefined,
-        type: ConversationType.GROUP,
-        participants: { create: userIds.map((userId) => ({ userId })) },
-      },
-      include: { participants: true },
-    });
-
-    return newConversation;
-  }
-
   async createMessage(data: SendMessageDto) {
-    const userIdsToValidate = [data.senderId];
-    if (data.receiverId) userIdsToValidate.push(data.receiverId);
-    if (Array.isArray(data.groupParticipantIds)) {
-      userIdsToValidate.push(...data.groupParticipantIds);
+    if (!data.senderId || !data.receiverId) {
+      throw new BadRequestException('senderId and receiverId are required fields.');
     }
+
+    const userIdsToValidate = [data.senderId, data.receiverId];
 
     const users = await this.prisma.user.findMany({
       where: { userId: { in: userIdsToValidate } },
@@ -112,17 +68,7 @@ export class ChatService {
       throw new BadRequestException(`Invalid user IDs: ${invalidUserIds.join(', ')}`);
     }
 
-    let conversation: { id: string; participants: any[]; name: string | null; type: ConversationType; createdAt: Date; updatedAt: Date } | null = null;
-
-    if (Array.isArray(data.groupParticipantIds) && data.groupParticipantIds.length > 2) {
-      if (!data.groupParticipantIds.includes(data.senderId)) {
-        data.groupParticipantIds.push(data.senderId);
-      }
-
-      conversation = await this.createGroupConversation(data.groupParticipantIds, data.groupName);
-    } else {
-      conversation = await this.getOrCreatePrivateConversation(data.senderId, data.receiverId);
-    }
+    const conversation = await this.getOrCreatePrivateConversation(data.senderId, data.receiverId);
 
     const message = await this.prisma.message.create({
       data: {
@@ -202,8 +148,20 @@ export class ChatService {
       },
       orderBy: { createdAt: 'asc' },
       include: {
-        sender: { select: { userId: true, name: true, profileImage: true } },
-        receiver: { select: { userId: true, name: true, profileImage: true } },
+        sender: {
+          select: {
+            userId: true,
+            name: true,
+            profileImage: true,
+          },
+        },
+        receiver: {
+          select: {
+            userId: true,
+            name: true,
+            profileImage: true,
+          },
+        },
       },
     });
 
@@ -211,55 +169,59 @@ export class ChatService {
   }
 
   async updateMessageStatus(data: UpdateMessageStatusDto) {
-    const updateData: any = {};
+    const updateData: { seen?: boolean; delivered?: boolean } = {};
     if (data.status === 'seen') {
       updateData.seen = true;
       updateData.delivered = true;
-    } else {
+    } else if (data.status === 'delivered') {
       updateData.delivered = true;
     }
+
     return this.prisma.message.update({
       where: { messageId: data.messageId },
       data: updateData,
-      include: {
-        sender: { select: { userId: true, name: true } },
-        receiver: { select: { userId: true, name: true } },
-      },
     });
   }
 
   async markAllMessagesAsRead(conversationId: string, userId: string) {
-    return this.prisma.message.updateMany({
+    await this.prisma.message.updateMany({
       where: {
-        conversationId,
+        conversationId: conversationId,
         receiverId: userId,
         seen: false,
       },
       data: {
         seen: true,
-        delivered: true,
       },
     });
   }
 
   async getUnreadMessageSenders(conversationId: string, receiverId: string) {
-    return this.prisma.message.findMany({
+    const unreadMessages = await this.prisma.message.findMany({
       where: {
         conversationId,
         receiverId,
         seen: false,
       },
+      distinct: ['senderId'],
       select: {
-        messageId: true,
-        senderId: true,
+        sender: {
+          select: {
+            userId: true,
+            name: true,
+            profileImage: true,
+          },
+        },
       },
     });
+
+    return unreadMessages.map((msg) => msg.sender);
   }
 
   async getUserById(userId: string) {
     return this.prisma.user.findUnique({
       where: { userId },
-      select: { userId: true, isOnline: true, name: true, profileImage: true },
+      select: { isOnline: true },
     });
   }
 
@@ -270,24 +232,12 @@ export class ChatService {
     });
   }
 
-  async renameConversation(conversationId: string, name: string) {
-    return this.prisma.conversation.update({
-      where: { id: conversationId },
-      data: { name },
-      include: { participants: true },
-    });
-  }
-
   async isConversationPrivate(conversationId: string): Promise<boolean> {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
       select: { type: true },
     });
 
-    if (!conversation) {
-      throw new Error(`Conversation with ID ${conversationId} not found`);
-    }
-
-    return conversation.type === 'PRIVATE';
+    return conversation?.type === ConversationType.PRIVATE;
   }
 }

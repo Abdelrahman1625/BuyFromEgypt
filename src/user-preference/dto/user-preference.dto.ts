@@ -1,4 +1,4 @@
-import { IsArray, IsOptional, IsString, IsBoolean } from 'class-validator';
+import { IsArray, IsOptional, IsString, IsBoolean, IsNotEmpty, IsEmail } from 'class-validator';
 
 export class UserPreferenceDto {
   @IsArray()
@@ -20,4 +20,7 @@ export class UserPreferenceDto {
   @IsOptional()
   @IsBoolean()
   receiveAlerts?: boolean;
+
+  @IsNotEmpty()
+  userId: string;
 }

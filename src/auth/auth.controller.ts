@@ -73,7 +73,7 @@ export class AuthController {
     status: HttpStatus.UNAUTHORIZED,
     description: 'Invalid or expired OTP',
   })
-  async verifyOtpAndSendResetLink(@Headers('User-Agent') header: string, @Body() verifyOtpDto: VerifyOtpDto): Promise<{ message: string }> {
+  async verifyOtpAndSendResetLink(@Headers('platform') header: string, @Body() verifyOtpDto: VerifyOtpDto): Promise<{ message: string }> {
     return this.authService.verifyOtpAndSendResetLink(header, verifyOtpDto);
   }
 

@@ -66,20 +66,6 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     this.server.emit('userStatusChanged', { userId, isOnline });
   }
 
-  @SubscribeMessage('joinConversation')
-  handleJoinConversation(@ConnectedSocket() client: Socket, @MessageBody() payload: { conversationId: string }) {
-    client.join(payload.conversationId);
-    this.logger.log(`User joined Group: ${payload.conversationId}`);
-    return { success: true };
-  }
-
-  @SubscribeMessage('leaveConversation')
-  handleLeaveConversation(@ConnectedSocket() client: Socket, @MessageBody() payload: { conversationId: string }) {
-    client.leave(payload.conversationId);
-    this.logger.log(`User left Group: ${payload.conversationId}`);
-    return { success: true };
-  }
-
   @SubscribeMessage('sendMessage')
   async handleSendMessage(@ConnectedSocket() client: Socket, @MessageBody() payload: SendMessageDto) {
     try {
@@ -96,11 +82,6 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
       if (isReceiverOnline) {
         this.server.to(payload.receiverId).emit('receiveMessage', message);
-
-        const isPrivate = await this.chatService.isConversationPrivate(message.conversationId);
-        if (!isPrivate) {
-          this.server.to(message.conversationId).emit('receiveMessage', message);
-        }
 
         const updatePayload: UpdateMessageStatusDto = {
           messageId: message.messageId,
@@ -141,7 +122,7 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     await this.chatService.markAllMessagesAsRead(payload.conversationId, payload.userId);
 
     const unreadMessages = await this.chatService.getUnreadMessageSenders(payload.conversationId, payload.userId);
-    const senderIds = [...new Set(unreadMessages.map((msg) => msg.senderId))];
+    const senderIds = [...new Set(unreadMessages.map((sender) => sender.userId))];
 
     senderIds.forEach((senderId) => {
       this.server.to(senderId).emit('conversationRead', {
@@ -151,17 +132,5 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     });
 
     return { success: true };
-  }
-
-  @SubscribeMessage('renameConversation')
-  async handleRenameConversation(@ConnectedSocket() client: Socket, @MessageBody() payload: { conversationId: string; name: string }) {
-    const updated = await this.chatService.renameConversation(payload.conversationId, payload.name);
-
-    this.server.to(payload.conversationId).emit('conversationRenamed', {
-      conversationId: payload.conversationId,
-      name: payload.name,
-    });
-
-    return { success: true, conversation: updated };
   }
 }

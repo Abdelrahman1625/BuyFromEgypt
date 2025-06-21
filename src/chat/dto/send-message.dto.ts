@@ -14,13 +14,4 @@ export class SendMessageDto {
 
   @IsEnum(MessageType)
   messageType: MessageType;
-
-  @IsOptional()
-  @IsUUID('all', { each: true })
-  @ArrayMinSize(3)
-  groupParticipantIds?: string[];
-
-  @IsOptional()
-  @IsString()
-  groupName?: string;
 }

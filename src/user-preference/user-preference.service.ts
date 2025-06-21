@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserPreferenceDto } from './dto/user-preference.dto';
 
@@ -6,11 +6,13 @@ import { UserPreferenceDto } from './dto/user-preference.dto';
 export class UserPreferenceService {
   constructor(private prisma: PrismaService) {}
 
-  async upsertPreference(userId: string, dto: UserPreferenceDto) {
+  async upsertPreference(dto: UserPreferenceDto) {
+    const { userId, ...data } = dto;
+
     return this.prisma.userPreference.upsert({
       where: { userId },
-      update: { ...dto },
-      create: { userId, ...dto },
+      update: { ...data },
+      create: { userId, ...data },
     });
   }
 

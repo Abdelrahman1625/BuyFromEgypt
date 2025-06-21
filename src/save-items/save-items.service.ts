@@ -1,6 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ValidationService } from '../common/validation/validation.service';
+import { PaginationService } from '../common/modules/pagination/pagination.service';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { PaginatedResponse } from '../common/interfaces/pagination.interface';
 
 export const ENTITY_TYPES = ['post', 'product'] as const;
 export type SaveableEntity = (typeof ENTITY_TYPES)[number];
@@ -9,7 +12,8 @@ export type SaveableEntity = (typeof ENTITY_TYPES)[number];
 export class SaveItemsService {
   constructor(
     private prisma: PrismaService,
-    private validationService: ValidationService
+    private validationService: ValidationService,
+    private paginationService: PaginationService
   ) {}
 
   private getRelationField(entityType: SaveableEntity) {
@@ -68,13 +72,26 @@ export class SaveItemsService {
     };
   }
 
-  async getSaved(entityType: SaveableEntity, userId: string) {
+  async getSaved(entityType: SaveableEntity, userId: string, paginationDto: PaginationDto): Promise<PaginatedResponse<any>> {
     const relation = this.getRelationField(entityType);
+    const paginationOptions = this.paginationService.getPaginationOptions(paginationDto);
+
+    const userWithCount = await this.prisma.user.findUnique({
+      where: { userId },
+      select: {
+        _count: {
+          select: { [relation]: true },
+        },
+      },
+    });
+    const total = userWithCount?._count?.[relation] || 0;
 
     const user = await this.prisma.user.findUnique({
       where: { userId },
       include: {
         [relation]: {
+          skip: paginationOptions.skip,
+          take: paginationOptions.limit,
           include:
             entityType === 'post'
               ? {
@@ -94,7 +111,7 @@ export class SaveItemsService {
         },
       },
     });
-
-    return user?.[relation] ?? [];
+    const data = user?.[relation] ?? [];
+    return this.paginationService.createPaginatedResponse<any>(data, total, paginationOptions);
   }
 }

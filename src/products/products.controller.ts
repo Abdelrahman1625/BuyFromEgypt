@@ -36,6 +36,7 @@ import { FilterProductsDto } from '../common/dto/filter-products.dto';
 import { PaginatedResponse } from '../common/interfaces/pagination.interface';
 import { Product } from './entities/product.entity';
 import { SaveItemsService } from '../save-items/save-items.service';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @ApiTags('Products')
 @Controller('products')
@@ -264,9 +265,10 @@ export class ProductsController {
     @Req()
     req: Request & {
       user: { userId: string };
-    }
+    },
+    @Query() paginationDto: PaginationDto
   ) {
-    return this.saveItemsService.getSaved('product', req.user.userId);
+    return this.saveItemsService.getSaved('product', req.user.userId, paginationDto);
   }
 
   @Get(':id')
