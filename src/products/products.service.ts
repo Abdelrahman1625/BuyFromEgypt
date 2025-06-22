@@ -12,8 +12,6 @@ import { FilterProductsDto, SortField, SortOrder } from '../common/dto/filter-pr
 import { PaginationService } from '../common/modules/pagination/pagination.service';
 import { PaginatedResponse } from '../common/interfaces/pagination.interface';
 import { FilterService } from '../common/modules/filter/filter.service';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class ProductsService {
@@ -21,152 +19,16 @@ export class ProductsService {
     private readonly prisma: PrismaService,
     private cloudinaryService: CloudinaryService,
     private paginationService: PaginationService,
-    private filterService: FilterService,
-    private readonly httpService: HttpService
+    private filterService: FilterService
   ) {}
 
   async findAll(filters?: FilterProductsDto): Promise<PaginatedResponse<Product>> {
-    if (filters) {
-      if (typeof filters.minPrice === 'string') filters.minPrice = Number(filters.minPrice);
-      if (typeof filters.maxPrice === 'string') filters.maxPrice = Number(filters.maxPrice);
-      if (typeof filters.minRating === 'string') filters.minRating = Number(filters.minRating);
-      if (typeof filters.page === 'string') filters.page = Number(filters.page);
-      if (typeof filters.limit === 'string') filters.limit = Number(filters.limit);
-    }
-
-    const ML_SERVER_URL = 'http://localhost:8000';
-    console.log('ML_SERVER_URL:', ML_SERVER_URL);
-
-    try {
-      const url = `${ML_SERVER_URL}/api/recommendations/products`;
-      const { data } = await firstValueFrom(this.httpService.post(url, filters));
-
-      if (data && data.data && data.data.recommendations) {
-        const recommended = data.data.recommendations;
-        const recommendedIds = recommended.map((p: any) => p.ProductID || p.productId);
-        console.log('[RECOMMENDATION] recommendedIds:', recommendedIds);
-        console.log('[RECOMMENDATION] recommended from ML:', recommended);
-
-        const recommendedProducts =
-          recommendedIds.length > 0
-            ? await this.prisma.product.findMany({
-                where: { productId: { in: recommendedIds } },
-                select: {
-                  productId: true,
-                  name: true,
-                  slug: true,
-                  description: true,
-                  price: true,
-                  currencyCode: true,
-                  active: true,
-                  rating: true,
-                  reviewCount: true,
-                  createdAt: true,
-                  updatedAt: true,
-                  owner: {
-                    select: {
-                      userId: true,
-                      name: true,
-                      email: true,
-                      role: true,
-                    },
-                  },
-                  category: {
-                    select: {
-                      categoryId: true,
-                      name: true,
-                      description: true,
-                    },
-                  },
-                  images: {
-                    select: {
-                      id: true,
-                      url: true,
-                      isPrimary: true,
-                      productId: true,
-                    },
-                  },
-                },
-              })
-            : [];
-
-        console.log('[RECOMMENDATION] products found in DB:', recommendedProducts);
-
-        // Order recommended products according to ML server order and limit to 5
-        const recommendedProductsOrdered = recommendedIds
-          .map((id: string) => recommendedProducts.find((p) => p.productId === id))
-          .filter(Boolean)
-          .slice(0, 5); // Limit to 5 recommendations
-
-        const { where, orderBy } = this.filterService.buildProductFilter(filters || {});
-        if (recommendedIds.length > 0) {
-          where.productId = { notIn: recommendedIds };
-        }
-
-        const paginationOptions = this.paginationService.getPaginationOptions(filters || {});
-        const restProducts = await this.prisma.product.findMany({
-          where,
-          orderBy,
-          skip: 0,
-          take: 100,
-          select: {
-            productId: true,
-            name: true,
-            slug: true,
-            description: true,
-            price: true,
-            currencyCode: true,
-            active: true,
-            rating: true,
-            reviewCount: true,
-            createdAt: true,
-            updatedAt: true,
-            owner: {
-              select: {
-                userId: true,
-                name: true,
-                email: true,
-                role: true,
-              },
-            },
-            category: {
-              select: {
-                categoryId: true,
-                name: true,
-                description: true,
-              },
-            },
-            images: {
-              select: {
-                id: true,
-                url: true,
-                isPrimary: true,
-                productId: true,
-              },
-            },
-          },
-        });
-
-        const allProducts = [...recommendedProductsOrdered, ...restProducts];
-        const total = allProducts.length;
-        const paginated = allProducts.slice(paginationOptions.skip, paginationOptions.skip + paginationOptions.limit);
-
-        console.log('[RECOMMENDATION] Recommendations fetched from ML server. Returning recommendations first (no filters), then the rest of products (with filters).');
-        console.log(`[RECOMMENDATION] Recommended count: ${recommendedProductsOrdered.length}, Rest count: ${restProducts.length}, Total: ${total}`);
-
-        return this.paginationService.createPaginatedResponse(paginated, total, {
-          page: paginationOptions.page,
-          limit: paginationOptions.limit,
-          skip: paginationOptions.skip,
-        });
-      }
-    } catch (err) {
-      console.error('[RECOMMENDATION] Error fetching recommendations:', err?.message || err);
-    }
-
     const { where, orderBy } = this.filterService.buildProductFilter(filters || {});
+
     const paginationOptions = this.paginationService.getPaginationOptions(filters || {});
+
     const total = await this.prisma.product.count({ where });
+
     const products = await this.prisma.product.findMany({
       where,
       orderBy,
@@ -421,18 +283,10 @@ export class ProductsService {
           },
         },
         include: {
-          owner: {
-            select: {
-              userId: true,
-              name: true,
-              email: true,
-              role: true,
-              profileImage: true,
-            },
-          },
+          owner: true,
           images: true,
           category: {
-            select: { categoryId: true, name: true, description: true },
+            include: { user: true },
           },
         },
       });

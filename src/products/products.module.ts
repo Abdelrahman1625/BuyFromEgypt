@@ -6,10 +6,9 @@ import { CloudinaryModule } from '../common/modules/cloudinary/cloudinary.module
 import { PaginationModule } from '../common/modules/pagination/pagination.module';
 import { FilterModule } from '../common/modules/filter/filter.module';
 import { SaveItemsService } from '../save-items/save-items.service';
-import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [CloudinaryModule, PaginationModule, FilterModule, HttpModule],
+  imports: [CloudinaryModule, PaginationModule, FilterModule],
   controllers: [ProductsController],
   providers: [ProductsService, PrismaService, SaveItemsService],
   exports: [ProductsService],
