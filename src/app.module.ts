@@ -23,6 +23,7 @@ import { UserPreferenceModule } from './user-preference/user-preference.module';
 import { EgyptianEconomicContextModule } from './egyptian-economic-context/egyptian-economic-context.module';
 import { SyncModule } from './sync/sync.module';
 import { ExportModule } from './export/export.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { ExportModule } from './export/export.module';
     EgyptianEconomicContextModule,
     SyncModule,
     ExportModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

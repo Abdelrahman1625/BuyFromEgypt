@@ -8,13 +8,13 @@ export class UserPreferenceController {
   constructor(private readonly userPreferenceService: UserPreferenceService) {}
 
   @Post()
-  async upsert(@Req() req, @Body() dto: UserPreferenceDto) {
+  async upsert(@Body() dto: UserPreferenceDto) {
     return this.userPreferenceService.upsertPreference(dto);
   }
 
   @UseGuards(AuthGuard)
   @Get('me')
-  async getMine(@Req() req) {
+  async getMine(@Req() req: Request & { user: { userId: string } }) {
     return this.userPreferenceService.getMyPreference(req.user.userId);
   }
 }

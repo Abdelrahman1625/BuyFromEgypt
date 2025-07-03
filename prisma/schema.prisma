@@ -56,7 +56,9 @@ model User {
   searchHistory            SearchHistory[]
   Product                  Product[]
   recommendationSystem     UserPreference[]
-
+  Notification             Notification[]            @relation("UserNotifications")
+  sentNotifications        Notification[]            @relation("NotificationSender")
+  
   @@index([createdAt])
   @@index([role, active])
 }
@@ -298,6 +300,9 @@ model Notification {
   commentId   String?
   isRead      Boolean  @default(false)
   createdAt   DateTime @default(now())
+
+  sender    User @relation("NotificationSender", fields: [senderId], references: [userId])
+  recipient User @relation("UserNotifications", fields: [recipientId], references: [userId])
 }
 
 model Category {

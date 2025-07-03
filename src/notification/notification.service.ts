@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { NotificationGateway } from './notification.gateway';
 import { NotificationTemplates } from './notification.config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ValidationService } from '../common/validation/validation.service';
 
 @Injectable()
 export class NotificationService {
   constructor(
     private prisma: PrismaService,
-    private gateway: NotificationGateway
+    private gateway: NotificationGateway,
+    private validationService: ValidationService
   ) {}
 
   async createAndSend({ type, senderId, recipientId, data }: { type: string; senderId: string; recipientId: string; data: Record<string, any> }) {
@@ -42,5 +44,30 @@ export class NotificationService {
       type,
       ...data,
     });
+  }
+
+  async getMyNotifications(userId: string) {
+    await this.validationService.validateUserExists(userId);
+
+    const notifications = await this.prisma.notification.findMany({
+      where: { recipientId: userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        message: true,
+        postId: true,
+        commentId: true,
+        isRead: true,
+        createdAt: true,
+        sender: {
+          select: {
+            name: true,
+            profileImage: true,
+          },
+        },
+      },
+    });
+
+    return notifications;
   }
 }
