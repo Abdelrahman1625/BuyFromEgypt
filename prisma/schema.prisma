@@ -315,19 +315,6 @@ model Category {
   @@index([name])
 }
 
-// model SavedPost {
-//   id        String   @id @default(uuid())
-//   userId    String
-//   postId    String
-//   createdAt DateTime @default(now())
-//   user      User     @relation("UserSavedPosts", fields: [userId], references: [userId])
-//   post      Post     @relation("SavedPosts", fields: [postId], references: [postId])
-//
-//   @@unique([userId, postId])
-//   @@index([userId])
-//   @@index([postId])
-// }
-
 model SocialMedia {
   id        String   @id @default(uuid())
   userId    String
