@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Param, Body, UseGuards, Req, HttpCode, HttpStatus, Put, Query } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Param, Body, UseGuards, Req, HttpCode, HttpStatus, Put, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -9,6 +9,7 @@ import { RoleEnum } from '../common/enums/role.enum';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('categories')
 export class CategoriesController {
@@ -17,8 +18,9 @@ export class CategoriesController {
   @Post()
   @Roles(RoleEnum.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
-  async create(@Req() req: Request & { user: { userId: string } }, @Body() createCategoryDto: CreateCategoryDto) {
-    return this.categoriesService.create(req.user.userId, createCategoryDto);
+  @UseInterceptors(FileInterceptor('image'))
+  async create(@Req() req: Request & { user: { userId: string } }, @Body() createCategoryDto: CreateCategoryDto, @UploadedFile() image?: Express.Multer.File) {
+    return this.categoriesService.create(req.user.userId, createCategoryDto, image);
   }
 
   @Get()
@@ -39,8 +41,9 @@ export class CategoriesController {
   @Put(':id')
   @Roles(RoleEnum.ADMIN)
   @UseGuards(AuthGuard, RolesGuard)
-  async update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
-    return this.categoriesService.update(id, updateCategoryDto);
+  @UseInterceptors(FileInterceptor('image'))
+  async update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto, @UploadedFile() image?: Express.Multer.File) {
+    return this.categoriesService.update(id, updateCategoryDto, image);
   }
 
   @Roles(RoleEnum.ADMIN)

@@ -14,16 +14,23 @@ export class CategoriesService {
     private readonly cloudinaryService: CloudinaryService
   ) {}
 
-  async create(userId: string, createCategoryDto: CreateCategoryDto): Promise<Category> {
+  async create(userId: string, createCategoryDto: CreateCategoryDto, image?: Express.Multer.File): Promise<Category> {
     const user = await this.prisma.user.findFirst({ where: { userId } });
     if (!user) {
       throw new NotFoundException(`User with ID '${userId}' not found.`);
+    }
+
+    let imageUrl: string | undefined = undefined;
+    if (image) {
+      const uploaded = await this.cloudinaryService.uploadImage(image, `categories`);
+      imageUrl = uploaded.url;
     }
 
     const category = await this.prisma.category.create({
       data: {
         ...createCategoryDto,
         userId,
+        image: imageUrl,
       },
       include: {
         user: {
@@ -96,16 +103,28 @@ export class CategoriesService {
     return category;
   }
 
-  async update(categoryId: string, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
+  async update(categoryId: string, updateCategoryDto: UpdateCategoryDto, image?: Express.Multer.File): Promise<Category> {
     const category = await this.prisma.category.findUnique({ where: { categoryId } });
 
     if (!category) {
       throw new NotFoundException(`Category with ID '${categoryId}' not found.`);
     }
 
+    let imageUrl: string | undefined = undefined;
+    if (image) {
+      if (category.image) {
+        const publicId = extractPublicIdFromUrl(category.image);
+        if (publicId) {
+          await this.cloudinaryService.deleteImage(publicId);
+        }
+      }
+      const uploaded = await this.cloudinaryService.uploadImage(image, `categories`);
+      imageUrl = uploaded.url;
+    }
+
     const updatedCategory = await this.prisma.category.update({
       where: { categoryId },
-      data: { ...updateCategoryDto },
+      data: { ...updateCategoryDto, image: imageUrl ?? category.image },
       include: {
         user: {
           select: { userId: true, name: true, email: true, role: true, type: true, active: true },
@@ -121,6 +140,13 @@ export class CategoriesService {
 
     if (!category) {
       throw new NotFoundException(`Category with ID '${categoryId}' not found.`);
+    }
+
+    if (category.image) {
+      const publicId = extractPublicIdFromUrl(category.image);
+      if (publicId) {
+        await this.cloudinaryService.deleteImage(publicId);
+      }
     }
 
     await this.prisma.$transaction(async (prisma) => {
@@ -158,4 +184,9 @@ export class CategoriesService {
 
     return { message: `Category with ID '${categoryId}' has been deleted successfully.` };
   }
+}
+
+function extractPublicIdFromUrl(url: string): string | null {
+  const match = url.match(/\/upload\/(?:v\d+\/)?([^\.]+)\./);
+  return match ? match[1] : null;
 }

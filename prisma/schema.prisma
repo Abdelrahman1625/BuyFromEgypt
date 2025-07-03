@@ -307,6 +307,7 @@ model Category {
   userId      String
   user        User      @relation("UserCategories", fields: [userId], references: [userId])
   products    Product[] @relation("CategoryProducts")
+  image       String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
