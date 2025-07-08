@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SendMessageDto } from './dto/send-message.dto';
 import { UpdateMessageStatusDto } from './dto/update-message-status.dto';
@@ -19,8 +19,7 @@ export class ChatService {
     if (invalidUserIds.length > 0) {
       throw new BadRequestException(`Invalid user IDs: ${invalidUserIds.join(', ')}`);
     }
-
-    const conversation = await this.prisma.conversation.findFirst({
+    const conversations = await this.prisma.conversation.findMany({
       where: {
         type: ConversationType.PRIVATE,
         participants: {
@@ -28,10 +27,11 @@ export class ChatService {
             userId: { in: [userId1, userId2] },
           },
         },
-        AND: [{ participants: { some: { userId: userId1 } } }, { participants: { some: { userId: userId2 } } }],
       },
       include: { participants: true },
     });
+
+    const conversation = conversations.find((c) => c.participants.length === 2 && c.participants.some((p) => p.userId === userId1) && c.participants.some((p) => p.userId === userId2));
 
     if (conversation) {
       return conversation;
@@ -109,8 +109,7 @@ export class ChatService {
           },
         },
         messages: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
+          orderBy: { createdAt: 'asc' },
           include: {
             sender: { select: { userId: true, name: true } },
           },
@@ -226,6 +225,13 @@ export class ChatService {
   }
 
   async updateUserOnlineStatus(userId: string, isOnline: boolean) {
+    const user = await this.prisma.user.findUnique({
+      where: { userId },
+      select: { userId: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
     return this.prisma.user.update({
       where: { userId },
       data: { isOnline },
