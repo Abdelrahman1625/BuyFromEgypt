@@ -77,11 +77,11 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         timestamp: message.createdAt,
       });
 
-      const receiverSockets = this.userSocketMap.get(payload.receiverId) || [];
+      const receiverSockets = this.userSocketMap.get(message.receiverId) || [];
       const isReceiverOnline = receiverSockets.length > 0;
 
       if (isReceiverOnline) {
-        this.server.to(payload.receiverId).emit('receiveMessage', message);
+        this.server.to(message.receiverId).emit('receiveMessage', message);
 
         const updatePayload: UpdateMessageStatusDto = {
           messageId: message.messageId,

@@ -51,32 +51,71 @@ export class ChatService {
   }
 
   async createMessage(data: SendMessageDto) {
-    if (!data.senderId || !data.receiverId) {
-      throw new BadRequestException('senderId and receiverId are required fields.');
+    if (!data.conversationId && !data.receiverId) {
+      throw new BadRequestException('must provide either conversationId or receiverId');
     }
 
-    const userIdsToValidate = [data.senderId, data.receiverId];
-
-    const users = await this.prisma.user.findMany({
-      where: { userId: { in: userIdsToValidate } },
-      select: { userId: true },
-    });
-    const existingUserIds = users.map((user) => user.userId);
-    const invalidUserIds = userIdsToValidate.filter((id) => !existingUserIds.includes(id));
-
-    if (invalidUserIds.length > 0) {
-      throw new BadRequestException(`Invalid user IDs: ${invalidUserIds.join(', ')}`);
+    if (data.conversationId && data.receiverId) {
+      throw new BadRequestException('must not provide both conversationId and receiverId');
     }
 
-    const conversation = await this.getOrCreatePrivateConversation(data.senderId, data.receiverId);
+    let receiverId: string;
+    let conversationId: string;
+
+    if (data.conversationId) {
+      const conversation = await this.prisma.conversation.findUnique({
+        where: { id: data.conversationId },
+        include: {
+          participants: {
+            include: {
+              user: { select: { userId: true, name: true } },
+            },
+          },
+        },
+      });
+
+      if (!conversation) {
+        throw new NotFoundException('conversation not found');
+      }
+
+      const senderParticipant = conversation.participants.find((p) => p.userId === data.senderId);
+      if (!senderParticipant) {
+        throw new BadRequestException('sender is not a participant in this conversation');
+      }
+
+      const receiverParticipant = conversation.participants.find((p) => p.userId !== data.senderId);
+      if (!receiverParticipant) {
+        throw new BadRequestException('cannot determine receiver');
+      }
+
+      receiverId = receiverParticipant.userId;
+      conversationId = data.conversationId;
+    } else {
+      receiverId = data.receiverId!;
+      const userIdsToValidate = [data.senderId, receiverId];
+      const users = await this.prisma.user.findMany({
+        where: { userId: { in: userIdsToValidate } },
+        select: { userId: true },
+      });
+
+      const existingUserIds = users.map((user) => user.userId);
+      const invalidUserIds = userIdsToValidate.filter((id) => !existingUserIds.includes(id));
+
+      if (invalidUserIds.length > 0) {
+        throw new BadRequestException(`Invalid user IDs: ${invalidUserIds.join(', ')}`);
+      }
+
+      const conversation = await this.getOrCreatePrivateConversation(data.senderId, receiverId);
+      conversationId = conversation.id;
+    }
 
     const message = await this.prisma.message.create({
       data: {
         senderId: data.senderId,
-        receiverId: data.receiverId,
+        receiverId: receiverId,
         content: data.content,
         messageType: data.messageType,
-        conversationId: conversation.id,
+        conversationId: conversationId,
       },
       include: {
         sender: { select: { userId: true, name: true } },
@@ -236,14 +275,5 @@ export class ChatService {
       where: { userId },
       data: { isOnline },
     });
-  }
-
-  async isConversationPrivate(conversationId: string): Promise<boolean> {
-    const conversation = await this.prisma.conversation.findUnique({
-      where: { id: conversationId },
-      select: { type: true },
-    });
-
-    return conversation?.type === ConversationType.PRIVATE;
   }
 }

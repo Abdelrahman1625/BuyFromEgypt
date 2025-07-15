@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsUUID, IsEnum, IsOptional, ArrayMinSize } from 'class-validator';
+import { IsString, IsNotEmpty, IsUUID, IsEnum, IsOptional } from 'class-validator';
 import { MessageType } from '@prisma/client';
 
 export class SendMessageDto {
@@ -6,7 +6,12 @@ export class SendMessageDto {
   senderId: string;
 
   @IsUUID()
-  receiverId: string;
+  @IsOptional()
+  receiverId?: string;
+
+  @IsUUID()
+  @IsOptional()
+  conversationId?: string;
 
   @IsString()
   @IsNotEmpty()
